@@ -16,4 +16,4 @@ codehandler is in /codehandler, just run make
 
 Python library: NWPlayer123
 
-TCPGecko codehandler: chadderz
+TCPGecko codehandler: Chadderz, Marionumber1
