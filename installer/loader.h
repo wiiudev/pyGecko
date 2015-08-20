@@ -8,4 +8,8 @@
 void _start();
 
 void _entryPoint();
+
+/* Arbitrary kernel write syscall */
+void kern_write(void *addr, uint32_t value);
+
 #endif /* LOADER_H */
