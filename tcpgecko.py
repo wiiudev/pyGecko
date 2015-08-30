@@ -38,6 +38,15 @@ class TCPGecko:
             address += 0x400
             length -= 0x400
         f.close()
+        
+    def readkern(self, address):
+        if not self.ValidMemory().validrange(address, 4): return
+        if not self.ValidMemory().validaccess(address, 4, "read"): return
+        self.s.send("\x0C") #cmd_readkern
+        request = struct.pack(">I", int(address))
+        self.s.send(request)
+        value  = struct.unpack(">I", self.s.recv(4))[0];
+        return value
 
     def writekern(self, address, value):
         if not self.ValidMemory().validrange(address, 4): return
