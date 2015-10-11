@@ -260,6 +260,27 @@ static int rungecko(struct bss_t *bss, int clientfd) {
 			CHECK_ERROR(ret < 0);
 			break;
 		}
+		case 0x72: { /* cmd_search32 */
+			ret = recvwait(bss, clientfd, buffer, 12);
+			CHECK_ERROR(ret < 0);
+			int addr = ((int *) buffer)[0];
+			int val = ((int  *) buffer)[1];
+			int size = ((int *) buffer)[2];
+			int i;
+			int resaddr = 0;
+			for(i = addr; i < (addr+size); i+=4)
+			{
+				if(*(int*)i == val)
+				{
+					resaddr = i;
+					break;
+				}
+			}
+			((int *)buffer)[0] = resaddr;
+			ret = sendwait(bss, clientfd, buffer, 4);
+			CHECK_ERROR(ret < 0);
+			break;
+		}
 		case 0x99: { /* cmd_version */
 			ret = sendbyte(bss, clientfd, 0x82); /* WiiU */
 			CHECK_ERROR(ret < 0);
