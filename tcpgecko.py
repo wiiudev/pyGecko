@@ -157,6 +157,13 @@ class TCPGecko:
         reply = self.s.recv(8)
         return struct.unpack(">I", reply[:4])[0]
 
+    def search32(self, address, value, size):
+        self.s.send("\x72") #cmd_search32
+        request = struct.pack(">III", address, value, size)
+        self.s.send(request)
+        reply = self.s.recv(4)
+        return struct.unpack(">I", reply)[0]
+
     def getversion(self):
         self.s.send("\x9A") #cmd_os_version
         reply = self.s.recv(4)
