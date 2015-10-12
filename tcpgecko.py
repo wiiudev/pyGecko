@@ -1,13 +1,17 @@
-import socket, struct
+import socket, struct, os, random, sys
 from common import *
+from time import sleep
 
 def enum(**enums):
     return type('Enum', (), enums)
 global printe
 class TCPGecko:
     def __init__(self, ip):
+        self.con = (str(ip), 7331)
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-        self.s.connect((str(ip), 7331))
+        print("Connecting to " + str(ip) + ":7331")
+        self.s.connect(self.con)
+        print("Connected!")
 
     def readmem(self, address, length):
         if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
@@ -37,8 +41,58 @@ class TCPGecko:
             f.write(ret)
             address += 0x400
             length -= 0x400
+            if length <= 0:
+                break
         f.close()
-        
+
+    def writemem(self, address, length, buf):
+        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
+        if not self.ValidMemory().validrange(address, length):
+            print("Invalid Memory Range!")
+            return
+        if not self.ValidMemory().validaccess(address, length, "write"):
+            print("No Memory Access!")
+            return
+        if not (len(buf) == length):
+            print("Got " + str(len(buf)) + " need " + str(length) + "!")
+            return
+        print(str(hex(address)) + "-" + str(hex(address + length)))
+        self.s.sendall("\x41") #cmd_upload
+        request = struct.pack(">II", address, address + length)
+        self.s.sendall(request)
+        self.s.sendall(buf)
+        #if(self.s.recv(1) != '\xaa'): #everything went well
+        #    raise BaseException, "Something did not get copied right"
+  
+    def writefile(self, address, filename):
+        f = open(filename, "rb")
+        f.seek(0, os.SEEK_END)
+        length = f.tell()
+        f.seek(0, os.SEEK_SET)
+        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
+        if not self.ValidMemory().validrange(address, length):
+            print("Invalid Memory Range!")
+            return
+        if not self.ValidMemory().validaccess(address, length, "write"):
+            print("No Memory Access!")
+            return
+        print("Writing " + str(length) + " bytes to " + hex(address))
+        for i in range((length+(0x400-(length%0x400)))/0x400):
+            if length < 0x400:
+                buf = f.read(length)
+                self.writemem(address, length, buf)
+            else:
+                buf = f.read(0x400)
+                self.writemem(address, 0x400, buf)
+            address += 0x400
+            length -= 0x400
+            if length <= 0:
+                break
+        if(self.s.recv(1) != '\xaa'): #ugly workaround here to not crash
+            raise BaseException, "Something did not get copied right"
+        f.close()
+        print("Done")
+
     def readkern(self, address):
         if not self.ValidMemory().validrange(address, 4): return
         if not self.ValidMemory().validaccess(address, 4, "read"): return
@@ -103,18 +157,36 @@ class TCPGecko:
         reply = self.s.recv(8)
         return struct.unpack(">I", reply[:4])[0]
 
+    def search32(self, address, value, size):
+        self.s.send("\x72") #cmd_search32
+        request = struct.pack(">III", address, value, size)
+        self.s.send(request)
+        reply = self.s.recv(4)
+        return struct.unpack(">I", reply)[0]
+
+    def getversion(self):
+        self.s.send("\x9A") #cmd_os_version
+        reply = self.s.recv(4)
+        return struct.unpack(">I", reply)[0]
+
     def function(self, rplname, symname, data=0, *args):
         symbol = self.get_symbol(rplname, symname, data)
         ret = self.call(symbol.address, *args)
         return ret
 
     def memalign(self, size, pad):
-        symbol = ExportedSymbol('\x01\x04\x84\xc0', self, 'coreinit.rpl', 'MEMAllocFromDefaultHeapEx')
+        if(self.getversion() == 532):
+            symbol = ExportedSymbol('\x01\x04\x84\xc0', self, 'coreinit.rpl', 'MEMAllocFromDefaultHeapEx')
+        else: #if ver==310
+            symbol = ExportedSymbol('\x01\x03\xae\xfc', self, 'coreinit.rpl', 'MEMAllocFromDefaultHeapEx')
         ret = self.call(symbol.address, size, pad)
         return ret
 
     def freemem(self, data):
-        symbol = ExportedSymbol('\x01\x04\x85l', self, "coreinit.rpl", "MEMFreeToDefaultHeap")
+        if(self.getversion() == 532):
+            symbol = ExportedSymbol('\x01\x04\x85l', self, "coreinit.rpl", "MEMFreeToDefaultHeap")
+        else: #if ver==310
+            symbol = ExportedSymbol('\x01\x03\xaf\x14', self, "coreinit.rpl", "MEMFreeToDefaultHeap")
         ret = self.call(symbol.address, data)
         return ret
 
@@ -271,6 +343,34 @@ class TCPGecko:
         self.function("coreinit.rpl", "OSFreeToSystem", 0, self.mode)
         self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pFh)
         print("Success :)")
+
+    def recvall(self, sock, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = ''
+        while len(data) < n:
+            packet = sock.recv(n - len(data))
+            if not packet:
+                return None
+            data += packet
+        return data
+    
+    def recv_msg(self, sock):
+        # Read message length and unpack it into an integer
+        raw_msglen = self.recvall(sock, 4)
+        if not raw_msglen:
+            return None
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        # Read the message data
+        return self.recvall(sock, msglen)
+
+    def log(self):
+        raw_oscall = self.recvall(self.s, 4)
+        oscall = struct.unpack('>I', raw_oscall)[0]
+        data = self.recv_msg(self.s)
+        if oscall and data:
+            outstr = "[0x" + format(oscall, "08X") + "] " + data
+            sys.stdout.write(outstr)
+            sys.stdout.flush()
 
     class FileSystem:
         Flags = enum(
