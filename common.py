@@ -45,7 +45,9 @@ def uint32(data, pos):
 
 def getstr(data, pos): #Keep incrementing till you hit a stop
     string = ""
-    while data[pos] != "\x00":
-        string += data[pos]
-        pos += 1
+    while data[pos] != 0:
+        if pos != len(data):
+            string += chr(data[pos])
+            pos += 1
+        else: break
     return string

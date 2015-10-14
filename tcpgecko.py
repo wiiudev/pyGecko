@@ -1,378 +1,302 @@
-import socket, struct, os, random, sys
+import socket, struct
 from common import *
-from time import sleep
+from binascii import hexlify, unhexlify
 
 def enum(**enums):
     return type('Enum', (), enums)
-global printe
+
 class TCPGecko:
-    def __init__(self, ip):
-        self.con = (str(ip), 7331)
+    def __init__(self, *args):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-        print("Connecting to " + str(ip) + ":7331")
-        self.s.connect(self.con)
+        print("Connecting to " + str(args[0]) + ":7331")
+        self.s.connect((str(args[0]), 7331)) #IP, 1337 reversed, Cafiine uses 7332+
         print("Connected!")
 
-    def readmem(self, address, length):
-        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
-        if not self.ValidMemory().validrange(address, length): return
-        if not self.ValidMemory().validaccess(address, length, "read"): return
-        self.s.send("\x04") #cmd_readmem
-        request = struct.pack(">II", address, address + length)
-        self.s.send(request)
-        status  = self.s.recv(1)
-        if status == "\xbd": #Non-zero memory was found
-            response = self.s.recv(length)
-        elif status == "\xb0": #All zeroes
-            response = "\x00" * length
-        else: return #Something went terribly wrong
-        return response
+    def readmem(self, address, length): #Number of bytes
+        if length == 0: raise BaseException("Reading memory requires a length (# of bytes)")
+        if not self.validrange(address, length): raise BaseException("Address range not valid")
+        if not self.validaccess(address, length, "read"): raise BaseException("Cannot read from address")
+        ret = b""
+        if length > 0x400:
+            print("Length is greater than 0x400 bytes, need to read in chunks")
+            print("Start address:   " + hexstr0(address))
+            for i in range(int(length / 0x400)): #Number of blocks, ignores extra
+                self.s.send(b"\x04") #cmd_readmem
+                request = struct.pack(">II", address, address + 0x400)
+                self.s.send(request)
+                status = self.s.recv(1)
+                if   status == b"\xbd": ret += self.s.recv(0x400)
+                elif status == b"\xb0": ret += b"\x00" * 0x400
+                else: raise BaseException("Something went terribly wrong")
+                address += 0x400;length -= 0x400
+                print("Current address: " + hexstr0(address))
+            if length != 0: #Now read the last little bit
+                self.s.send(b"\x04")
+                request = struct.pack(">II", address, address + length)
+                self.s.send(request)
+                status = self.s.recv(1)
+                if   status == b"\xbd": ret += self.s.recv(length)
+                elif status == b"\xb0": ret += b"\x00" * length
+                else: raise BaseException("Something went terribly wrong")
+            print("Finished!")
+        else:
+            self.s.send(b"\x04")
+            request = struct.pack(">II", address, address + length)
+            self.s.send(request)
+            status = self.s.recv(1)
+            if   status == b"\xbd": ret += self.s.recv(length)
+            elif status == b"\xb0": ret += b"\x00" * length
+            else: raise BaseException("Something went terribly wrong")
+        return ret
 
-    def dumpmem(self, address, length, filename="memdump.bin"):
-        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
-        if not self.ValidMemory().validrange(address, length): return
-        if not self.ValidMemory().validaccess(address, length, "read"): return
-        f = open(filename, "wb")
-        for i in range((length+(0x400-(length%0x400)))/0x400):
-            if length < 0x400: ret = self.readmem(address, length)
-            else: ret = self.readmem(address, 0x400)
-            print(hexstr0(address)) #now that we know it's been read
-            print(hexstr0(length))
-            f.write(ret)
-            address += 0x400
-            length -= 0x400
-            if length <= 0:
-                break
-        f.close()
-
-    def writemem(self, address, length, buf):
-        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
-        if not self.ValidMemory().validrange(address, length):
-            print("Invalid Memory Range!")
-            return
-        if not self.ValidMemory().validaccess(address, length, "write"):
-            print("No Memory Access!")
-            return
-        if not (len(buf) == length):
-            print("Got " + str(len(buf)) + " need " + str(length) + "!")
-            return
-        print(str(hex(address)) + "-" + str(hex(address + length)))
-        self.s.sendall("\x41") #cmd_upload
-        request = struct.pack(">II", address, address + length)
-        self.s.sendall(request)
-        self.s.sendall(buf)
-        #if(self.s.recv(1) != '\xaa'): #everything went well
-        #    raise BaseException, "Something did not get copied right"
-  
-    def writefile(self, address, filename):
-        f = open(filename, "rb")
-        f.seek(0, os.SEEK_END)
-        length = f.tell()
-        f.seek(0, os.SEEK_SET)
-        if length == 0: raise BaseException, "Why are you giving me no length" #Please don't do this to me
-        if not self.ValidMemory().validrange(address, length):
-            print("Invalid Memory Range!")
-            return
-        if not self.ValidMemory().validaccess(address, length, "write"):
-            print("No Memory Access!")
-            return
-        print("Writing " + str(length) + " bytes to " + hex(address))
-        for i in range((length+(0x400-(length%0x400)))/0x400):
-            if length < 0x400:
-                buf = f.read(length)
-                self.writemem(address, length, buf)
-            else:
-                buf = f.read(0x400)
-                self.writemem(address, 0x400, buf)
-            address += 0x400
-            length -= 0x400
-            if length <= 0:
-                break
-        if(self.s.recv(1) != '\xaa'): #ugly workaround here to not crash
-            raise BaseException, "Something did not get copied right"
-        f.close()
-        print("Done")
-
-    def readkern(self, address):
-        if not self.ValidMemory().validrange(address, 4): return
-        if not self.ValidMemory().validaccess(address, 4, "read"): return
-        self.s.send("\x0C") #cmd_readkern
+    def readkern(self, address): #Only takes 4 bytes, may need to run multiple times
+        if not self.validrange(address, 4): raise BaseException("Address range not valid")
+        if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
+        self.s.send(b"\x0C") #cmd_readkern
         request = struct.pack(">I", int(address))
         self.s.send(request)
-        value  = struct.unpack(">I", self.s.recv(4))[0];
+        value  = struct.unpack(">I", self.s.recv(4))[0]
         return value
 
-    def writekern(self, address, value):
-        if not self.ValidMemory().validrange(address, 4): return
-        if not self.ValidMemory().validaccess(address, 4, "write"): return
-        self.s.send("\x0b") #cmd_writekern
+    def writekern(self, address, value): #Only takes 4 bytes, may need to run multiple times
+        if not self.validrange(address, 4): raise BaseException("Address range not valid")
+        if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
+        self.s.send(b"\x0B") #cmd_readkern
         print(value)
         request = struct.pack(">II", int(address), int(value))
         self.s.send(request)
         return
 
-    def pokemem(self, address, value):
-        if not self.ValidMemory().validrange(address, 4): return
-        if not self.ValidMemory().validaccess(address, 4, "write"): return
-        self.s.send("\x03") #cmd_pokemem
+    def pokemem(self, address, value): #Only takes 4 bytes, may need to run multiple times
+        if not self.validrange(address, 4): raise BaseException("Address range not valid")
+        if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
+        self.s.send(b"\x03") #cmd_pokemem
         request = struct.pack(">II", int(address), int(value))
-        self.s.send(request)
+        self.s.send(request) #Done, move on
         return
-
-    def writestr(self, address, string):
-        if not self.ValidMemory().validrange(address, len(string)): return
-        if not self.ValidMemory().validaccess(address, len(string), "write"): return
-        if len(string) % 4: string = string.ljust(len(string) + (4 - (len(string) % 4)), "\x00")
-        strpos = 0
-        for x in range(len(string) / 4):
-            self.pokemem(address, int(string[strpos:strpos + 4].encode("hex"), 16))
-            address += 4;strpos += 4
-        return
-
-    def get_symbol(self, rplname, symname, data=0):
-        self.s.send("\x71") #cmd_getsymbol
-        request = struct.pack(">II", 8, 8 + len(rplname) + 1)
-        request += rplname.encode('utf-8') + b"\x00"
-        request += symname.encode('utf-8') + b"\x00"
-        length = struct.pack(">I", len(request))
-        data = struct.pack(">B", data)
-        self.s.send(length)
-        self.s.send(request)
-        self.s.send(data)
-        
-        address = self.s.recv(4)
-        return ExportedSymbol(address, self, rplname, symname)
-
-    def call(self, address, *args):
-        # Turn the arguments into a list and add 0 for unused slots
-        arguments = list(args)
-        while len(arguments) != 10:
-            arguments.append(0)
-
-        self.s.send("\x70") #cmd_rpc
-        address = struct.unpack(">I", address)[0]
-        request = struct.pack(">I10I", address, *arguments)
-        self.s.send(request)
-
-        reply = self.s.recv(8)
-        return struct.unpack(">I", reply[:4])[0]
 
     def search32(self, address, value, size):
-        self.s.send("\x72") #cmd_search32
+        self.s.send(b"\x72") #cmd_search32
         request = struct.pack(">III", address, value, size)
         self.s.send(request)
         reply = self.s.recv(4)
         return struct.unpack(">I", reply)[0]
 
     def getversion(self):
-        self.s.send("\x9A") #cmd_os_version
+        self.s.send(b"\x9A") #cmd_os_version
         reply = self.s.recv(4)
         return struct.unpack(">I", reply)[0]
 
-    def function(self, rplname, symname, data=0, *args):
-        symbol = self.get_symbol(rplname, symname, data)
-        ret = self.call(symbol.address, *args)
-        return ret
-
-    def memalign(self, size, pad):
-        if(self.getversion() == 532):
-            symbol = ExportedSymbol('\x01\x04\x84\xc0', self, 'coreinit.rpl', 'MEMAllocFromDefaultHeapEx')
-        else: #if ver==310
-            symbol = ExportedSymbol('\x01\x03\xae\xfc', self, 'coreinit.rpl', 'MEMAllocFromDefaultHeapEx')
-        ret = self.call(symbol.address, size, pad)
-        return ret
-
-    def freemem(self, data):
-        if(self.getversion() == 532):
-            symbol = ExportedSymbol('\x01\x04\x85l', self, "coreinit.rpl", "MEMFreeToDefaultHeap")
-        else: #if ver==310
-            symbol = ExportedSymbol('\x01\x03\xaf\x14', self, "coreinit.rpl", "MEMFreeToDefaultHeap")
-        ret = self.call(symbol.address, data)
-        return ret
-
-    def OSAlloc(self, size, pad):
-        return self.function("coreinit.rpl", "OSAllocFromSystem", 0, size, pad)
-
-    def makeclient(self):
-        client = self.memalign(0x1700, 0x20)
-        self.function("coreinit.rpl", "FSAddClient", 0, client, 0)
-        return client
-
-    def makecmd(self):
-        cmdblock = self.memalign(0xA80, 0x20)
-        self.function("coreinit.rpl", "FSInitCmdBlock", 0, cmdblock)
-        return cmdblock
-
-    def makefsbuf(self):
-        buf = self.memalign(0x164, 0x20)
-        self.function("coreinit.rpl", "memset", 0, buf, 0x00, 0x180)
-        return buf
-
-    def makefilebuf(self):
-        buf = self.OSAlloc(0x400, 0x20)
-        self.function("coreinit.rpl", "memset", 0, buf, 0x00, 0x400)
-        return buf
-
-    def makepath(self, string):
-        path = self.OSAlloc(len(string), 0x20)
-        size = len(string) + (32 - (len(string) % 32))
-        self.function("coreinit.rpl", "memset", 0, path, 0x00, size)
-        self.writestr(path, string)
-        return path
-
-    def updatepath(self, path, string):
-        self.function("coreinit.rpl", "memset", 0, path, 0x00, 0x280)
-        self.writestr(path, string)
-        return path
-
-    def makeword(self):
-        return self.OSAlloc(4, 4)
-
-    def gethandle(self, handle):
-        return struct.unpack(">I", self.readmem(handle, 4))[0]
-
-    def makemode(self, mode):
-        data = self.makeword()
-        self.writestr(data, mode)
-        return data
-
-    def FSReadInit(self):
-        self.function("coreinit.rpl", "FSInit")
-        self.pClient = self.makeclient()
-        self.pCmd = self.makecmd()
-
-    def SAVEReadInit(self, slot):
-        self.function("nn_save.rpl", "SAVEInit")
-        ret = self.function("nn_save.rpl", "SAVEInitSaveDir", 0, slot)
-        print(ret)
-        self.initsave = True
-        self.slot = slot
-
-    def FSOpenDir(self, path):
-        if not hasattr(self, "pClient"): self.FSReadInit()
-        self.pPath = self.makepath(path)
-        self.pDh = self.makeword()
-        ret = self.function("coreinit.rpl", "FSOpenDir", 0, self.pClient, self.pCmd, self.pPath, self.pDh, 0xFFFFFFFF)
-        self.dh = self.gethandle(self.pDh)
-        self.pBuffer = self.makefsbuf()
-        return ret
-
-    def SAVEOpenDir(self, path):
-        if not hasattr(self, "pClient"): self.FSReadInit()
-        if not hasattr(self, "initsave"): self.SAVEReadInit(255) #COMMON
-        self.pPath = self.makepath(path)
-        ret = self.function("nn_save.rpl", "SAVEOpenDir", 0, self.pClient, self.pCmd, self.slot, self.pPath, self.pDh, 0xFFFFFFFF)
-        self.pDh = self.gethandle(self.pDh)
-        return ret
-
-    def FSCleanDir(self):
-        ret = self.function("coreinit.rpl", "FSCloseDir", 0, self.pClient, self.pCmd, self.dh, 0)
-        if ret != 0: raise IOError, "Could not close directory properly"
-        self.function("coreinit.rpl", "FSDelClient", 0, self.pClient, 0)
-        self.freemem(self.pClient)
-        self.freemem(self.pCmd)
-        self.freemem(self.pBuffer)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pPath)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pDh)
+    def writestr(self, address, string):
+        if not self.validrange(address, len(string)): raise BaseException("Address range not valid")
+        if not self.validaccess(address, len(string), "write"): raise BaseException("Cannot write to address")
+        if type(string) != bytes: string = bytes(string, "UTF-8") #Sanitize
+        if len(string) % 4: string += bytes((4 - (len(string) % 4)) * b"\x00")
+        pos = 0
+        for x in range(int(len(string) / 4)):
+            self.pokemem(address, struct.unpack(">I", string[pos:pos + 4])[0])
+            address += 4;pos += 4
+        return
         
-    def FSCleanFile(self):
-        ret = self.function("coreinit.rpl", "FSCloseFile", 0, self.pClient, self.pCmd, self.fh, 0)
-        self.function("coreinit.rpl", "FSDelClient", 0, self.pClient, 0)
-        self.freemem(self.pClient)
-        self.freemem(self.pCmd)
-        self.freemem(self.pBuffer)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pPath)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.mode)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pFh)
-
-    def closeDir(self):
-        ret = self.function("coreinit.rpl", "FSCloseDir", 0, self.pClient, self.pCmd, self.pDh, 0xFFFFFFFF)
+    def memalign(self, size, align):
+        symbol = self.get_symbol("coreinit.rpl", "MEMAllocFromDefaultHeapEx", True, 1)
+        symbol = struct.unpack(">I", symbol.address)[0]
+        address = self.readmem(symbol, 4)
+        #print("memalign address: " + hexstr0(struct.unpack(">I", address)[0]))
+        ret = self.call(address, size, align)
         return ret
 
-    def getentry(self):
+    def freemem(self, address):
+        symbol = self.get_symbol("coreinit.rpl", "MEMFreeToDefaultHeap", True, 1)
+        symbol = struct.unpack(">I", symbol.address)[0]
+        addr = self.readmem(symbol, 4)
+        #print("freemem address: " + hexstr0(struct.unpack(">I", addr)[0]))
+        self.call(addr, address) #void, no return
+
+    def memalloc(self, size, align, noprint=False):
+        return self.function("coreinit.rpl", "OSAllocFromSystem", noprint, 0, size, align)
+
+    def freealloc(self, address):
+        return self.function("coreinit.rpl", "OSFreeToSystem", True, 0, address)
+
+    def createpath(self, path):
+        if not hasattr(self, "pPath"): self.pPath = self.memalloc(len(path), 0x20, True) #It'll auto-pad
+        size = len(path) + (32 - (len(path) % 32))
+        self.function("coreinit.rpl", "memset", True, 0, self.pPath, 0x00, size)
+        self.writestr(self.pPath, path)
+        #print("pPath address: " + hexstr0(self.pPath))
+
+    def createstr(self, string):
+        address = self.memalloc(len(string), 0x20, True) #It'll auto-pad
+        size = len(string) + (32 - (len(string) % 32))
+        self.function("coreinit.rpl", "memset", True, 0, address, 0x00, size)
+        self.writestr(address, string)
+        print("String address: " + hexstr0(address))
+        return address
+
+    def FSInitClient(self):
+        self.pClient = self.memalign(0x1700, 0x20)
+        self.function("coreinit.rpl", "FSAddClient", True, 0, self.pClient)
+        #print("pClient address: " + hexstr0(self.pClient))
+
+    def FSInitCmdBlock(self):
+        self.pCmd = self.memalign(0xA80, 0x20)
+        self.function("coreinit.rpl", "FSInitCmdBlock", True, 0, self.pCmd)
+        #print("pCmd address:    " + hexstr0(self.pCmd))
+
+    def FSOpenDir(self, path="/"):
+        print("Initializing...")
+        self.function("coreinit.rpl",  "FSInit", True)
+        if not hasattr(self, "pClient"): self.FSInitClient()
+        if not hasattr(self, "pCmd"):    self.FSInitCmdBlock()
+        print("Getting memory ready...")
+        self.createpath(path)
+        self.pDh   = self.memalloc(4, 4, True)
+        #print("pDh address: " + hexstr0(self.pDh))
+        print("Calling function...")
+        ret = self.function("coreinit.rpl", "FSOpenDir", False, 0, self.pClient, self.pCmd, self.pPath, self.pDh, 0xFFFFFFFF)
+        self.pDh = int(hexlify(self.readmem(self.pDh, 4)), 16)
+        print("Return value: " + hexstr0(ret))
+
+    def SAVEOpenDir(self, path="/", slot=255):
+        print("Initializing...")
+        self.function("coreinit.rpl",  "FSInit", True, 0)
+        self.function("nn_save.rpl", "SAVEInit", True, 0, slot)
+        print("Getting memory ready...")
+        if not hasattr(self, "pClient"): self.FSInitClient()
+        if not hasattr(self, "pCmd"):    self.FSInitCmdBlock()
+        self.createpath(path)
+        self.pDh   = self.memalloc(4, 4, True)
+        #print("pDh address: " + hexstr0(self.pDh))
+        print("Calling function...")
+        ret = self.function("nn_save.rpl", "SAVEOpenDir", False, 0, self.pClient, self.pCmd, slot, self.pPath, self.pDh, 0xFFFFFFFF)
+        self.pDh = int(hexlify(self.readmem(self.pDh, 4)), 16)
+        print("Return value: " + hexstr0(ret))
+
+    def FSReadDir(self):
         global printe
-        ret = self.function("coreinit.rpl", "FSReadDir", 0, self.pClient, self.pCmd, self.dh, self.pBuffer, 0xFFFFFFFF)
+        if not hasattr(self, "pBuffer"): self.pBuffer = self.memalign(0x164, 0x20)
+        #print("pBuffer address: " + hexstr0(self.pBuffer))
+        ret = self.function("coreinit.rpl", "FSReadDir", True, 0, self.pClient, self.pCmd, self.pDh, self.pBuffer, 0xFFFFFFFF)
         self.entry = self.readmem(self.pBuffer, 0x164)
         printe = getstr(self.entry, 100) + " "
         self.FileSystem().printflags(uint32(self.entry, 0), self.entry)
         self.FileSystem().printperms(uint32(self.entry, 4))
         print(printe)
-        #return ret
+        return self.entry, ret
 
-    '''def getsave(self, titleid, slot): #For some reason breaks so uncomment one or the other, probs need to exit and reopen app
-        #Part 1, scan directory for a file
-        if not hasattr(self, "pClient"): self.FSReadInit()
-        self.SAVEReadInit(slot)
-        self.pPath = self.makepath("")
-        self.pDh = self.makeword()
-        titleid = struct.unpack(">II", struct.pack(">II", titleid >> 32, titleid & 0xFFFFFFFF)) #There's probably a better way to do this but I'm too tired
-        ret = self.function("nn_save.rpl", "SAVEOpenDirOtherApplication", 0, self.pClient, self.pCmd, titleid[0], titleid[1], slot, self.pPath, self.pDh, 0xFFFFFFFF)
-        if ret != 0: print(ret);raise IOError, "Could not open save directory"
-        self.pBuffer = self.makefsbuf()
-        self.dh = self.gethandle(self.pDh)
-        if self.getentry() != 0: raise IOError, "Could not find any files in save directory"
-        self.FSCleanDir()'''
+    def SAVEOpenFile(self, path="/", mode="r", slot=255):
+        print("Initializing...")
+        self.function("coreinit.rpl",  "FSInit", True)
+        self.function("nn_save.rpl", "SAVEInit", slot, True)
+        print("Getting memory ready...")
+        if not hasattr(self, "pClient"): self.FSInitClient()
+        if not hasattr(self, "pCmd"):    self.FSInitCmdBlock()
+        self.createpath(path)
+        self.pMode = self.createstr(mode)
+        self.pFh   = self.memalign(4, 4)
+        #print("pFh address: " + hexstr0(self.pFh))
+        print("Calling function...")
+        print("This function may have errors")
+        #ret = self.function("nn_save.rpl", "SAVEOpenFile", self.pClient, self.pCmd, slot, self.pPath, self.pMode, self.pFh, 0xFFFFFFFF)
+        #self.pFh = int(self.readmem(self.pFh, 4).encode("hex"), 16)
+        #print(ret)
 
-    def getsave(self, titleid, slot): #For some reason breaks so uncomment one or the other, probs need to exit and reopen app
-        #Part 2, read the file
-        if not hasattr(self, "pClient"): self.FSReadInit()
-        self.SAVEReadInit(slot)
-        self.pPath = self.makepath("save.dat")
-        self.mode = self.makemode("r")
-        self.pFh = self.makeword()
-        titleid = struct.unpack(">II", struct.pack(">II", titleid >> 32, titleid & 0xFFFFFFFF)) #There's probably a better way to do this but I'm too tired
-        ret = self.function("nn_save.rpl", "SAVEOpenFileOtherApplication", 0, self.pClient, self.pCmd, titleid[0], titleid[1], slot, self.pPath, self.mode, self.pFh, 8) #All but file not found = fatal error
-        if ret != 0: raise IOError, "Could not open save file for reading"
-        self.pBuffer = self.makefilebuf();print(self.pBuffer)
-        if self.pBuffer == 0: raise MemoryError, "Couldn't allocate file buffer"
-        self.pFh = self.gethandle(self.pFh);print(self.pFh)
-        f = open("save.dat", "wb")
-        ret = 1024;pos = 0
-        while ret != 0: #read until empty
-            ret = self.function("coreinit.rpl", "FSReadFile", 0, self.pClient, self.pCmd, self.pBuffer, 1, ret, self.pFh, 0, 0);print(ret)
-            if ret != 0:
-                f.write(self.readmem(self.pBuffer, ret))
-                pos += ret
-        f.close()
-        self.function("coreinit.rpl", "FSCloseFile", 0, self.pClient, self.pCmd, self.pFh, 0)
-        self.function("coreinit.rpl", "FSDelClient", 0, self.pClient, 0)
-        self.freemem(self.pClient)
-        self.freemem(self.pCmd)
-        self.freemem(self.pBuffer)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pPath)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.mode)
-        self.function("coreinit.rpl", "OSFreeToSystem", 0, self.pFh)
-        print("Success :)")
+    def FSReadFile(self):
+        if not hasattr(self, "pBuffer"): self.pBuffer = self.memalign(0x200, 0x20)
+        print("pBuffer address: " + hexstr0(self.pBuffer))
+        ret = self.function("coreinit.rpl", "FSReadFile", False, 0, self.pClient, self.pCmd, self.pBuffer, 1, 0x200, self.pFh, 0, 0xFFFFFFFF)
+        print(ret)
+        return tcp.readmem(self.pBuffer, 0x200)
 
-    def recvall(self, sock, n):
-        # Helper function to recv n bytes or return None if EOF is hit
-        data = ''
-        while len(data) < n:
-            packet = sock.recv(n - len(data))
-            if not packet:
-                return None
-            data += packet
-        return data
-    
-    def recv_msg(self, sock):
-        # Read message length and unpack it into an integer
-        raw_msglen = self.recvall(sock, 4)
-        if not raw_msglen:
-            return None
-        msglen = struct.unpack('>I', raw_msglen)[0]
-        # Read the message data
-        return self.recvall(sock, msglen)
+    def get_symbol(self, rplname, symname, noprint=False, data=0):
+        self.s.send(b"\x71") #cmd_getsymbol
+        request = struct.pack(">II", 8, 8 + len(rplname) + 1) #Pointers
+        request += rplname.encode("UTF-8") + b"\x00"
+        request += symname.encode("UTF-8") + b"\x00"
+        size = struct.pack(">B", len(request))
+        data = struct.pack(">B", data)
+        self.s.send(size) #Read this many bytes
+        self.s.send(request) #Get this symbol
+        self.s.send(data) #Is it data?
+        address = self.s.recv(4)
+        return ExportedSymbol(address, self, rplname, symname, noprint)
 
-    def log(self):
-        raw_oscall = self.recvall(self.s, 4)
-        oscall = struct.unpack('>I', raw_oscall)[0]
-        data = self.recv_msg(self.s)
-        if oscall and data:
-            outstr = "[0x" + format(oscall, "08X") + "] " + data
-            sys.stdout.write(outstr)
-            sys.stdout.flush()
+    def call(self, address, *args):
+        arguments = list(args)
+        if len(arguments)>8 and len(arguments)<=16: #Use the big call function
+            while len(arguments) != 16:
+                arguments.append(0)
+            self.s.send(b"\x80")
+            address = struct.unpack(">I", address)[0]
+            request = struct.pack(">I16I", address, *arguments)
+            self.s.send(request)
+            reply = self.s.recv(8)
+            return struct.unpack(">I", reply[:4])[0]
+        elif len(arguments) <= 8: #Use the normal one that dNet client uses
+            while len(arguments) != 8:
+                arguments.append(0)
+            self.s.send(b"\x70")
+            address = struct.unpack(">I", address)[0]
+            request = struct.pack(">I8I", address, *arguments)
+            self.s.send(request)
+            reply = self.s.recv(8)
+            return struct.unpack(">I", reply[:4])[0]
+        else: raise BaseException("Too many arguments!")
 
-    class FileSystem:
+    #Data last, only a few functions need it, noprint for the big FS/SAVE ones above, acts as gateway for data arg
+    def function(self, rplname, symname, noprint=False, data=0, *args):
+        symbol = self.get_symbol(rplname, symname, noprint, data)
+        ret = self.call(symbol.address, *args)
+        return ret
+
+    def validrange(self, address, length):
+        if   0x01000000 <= address and address + length <= 0x01800000: return True
+        elif 0x0E000000 <= address and address + length <= 0x10000000: return True #Depends on game
+        elif 0x10000000 <= address and address + length <= 0x50000000: return True #Doesn't quite go to 5
+        elif 0xE0000000 <= address and address + length <= 0xE4000000: return True
+        elif 0xE8000000 <= address and address + length <= 0xEA000000: return True
+        elif 0xF4000000 <= address and address + length <= 0xF6000000: return True
+        elif 0xF6000000 <= address and address + length <= 0xF6800000: return True
+        elif 0xF8000000 <= address and address + length <= 0xFB000000: return True
+        elif 0xFB000000 <= address and address + length <= 0xFB800000: return True
+        elif 0xFFFE0000 <= address and address + length <= 0xFFFFFFFF: return True
+        else: return False
+
+    def validaccess(self, address, length, access):
+        if   0x01000000 <= address and address + length <= 0x01800000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0x0E000000 <= address and address + length <= 0x10000000: #Depends on game, may be EG 0x0E3
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0x10000000 <= address and address + length <= 0x50000000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return True
+        elif 0xE0000000 <= address and address + length <= 0xE4000000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xE8000000 <= address and address + length <= 0xEA000000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xF4000000 <= address and address + length <= 0xF6000000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xF6000000 <= address and address + length <= 0xF6800000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xF8000000 <= address and address + length <= 0xFB000000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xFB000000 <= address and address + length <= 0xFB800000:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return False
+        elif 0xFFFE0000 <= address and address + length <= 0xFFFFFFFF:
+            if access.lower() == "read":  return True
+            if access.lower() == "write": return True
+        else: return False
+        
+    class FileSystem: #TODO: Try to clean this up ????
         Flags = enum(
             IS_DIRECTORY    = 0x80000000,
             IS_QUOTA        = 0x40000000,
@@ -412,63 +336,18 @@ class TCPGecko:
             if perms & self.Permissions.OWNER_WRITE: printe += " OWNER_WRITE"
             if perms & self.Permissions.OTHER_READ:  printe += " OTHER_READ"
             if perms & self.Permissions.OTHER_WRITE: printe += " OTHER_WRITE"
-        
-    class ValidMemory:
-        class AddressRange(object):
-            def __init__(self, id, low, high):
-                self.id = id
-                self.low = low
-                self.high = high
+                
+def hexstr0(data): #0xFFFFFFFF, uppercase hex string
+    return "0x" + hex(data).lstrip("0x").rstrip("L").zfill(8).upper()
 
-        AddressType = enum( #Read, Write, Execute, Hardware
-            Rw       = 0x1100, 
-            Ro       = 0x1000,
-            Ex       = 0x1010,
-            Hardware = 0x0001, # ???
-            Unknown  = 0x0000)
-
-        AddressRanges = [
-            AddressRange(AddressType.Ex, 0x01000000, 0x01800000),
-            AddressRange(AddressType.Ex, 0x0e300000, 0x10000000),
-            AddressRange(AddressType.Rw,  0x10000000,0x50000000),
-            AddressRange(AddressType.Ro,  0xe0000000,0xe4000000),
-            AddressRange(AddressType.Ro,  0xe8000000,0xea000000),
-            AddressRange(AddressType.Ro,  0xf4000000,0xf6000000),
-            AddressRange(AddressType.Ro,  0xf6000000,0xf6800000),
-            AddressRange(AddressType.Ro,  0xf8000000,0xfb000000),
-            AddressRange(AddressType.Ro,  0xfb000000,0xfb800000),
-            AddressRange(AddressType.Rw,  0xfffe0000,0xffffffff)]
-
-        def validrange(self, address, length):
-            for addr in self.AddressRanges:
-                if address <= addr.low and address < addr.high:
-                    if address + length <= addr.high:
-                        return True
-            return False
-
-        def validaccess(self, address, length, perm):
-            for addr in self.AddressRanges:
-                if address <= addr.low and address < addr.high:
-                    if address + length <= addr.high:
-                        if perm.lower() == "read":
-                            if addr.id & 0x1000:
-                                return True
-                        if perm.lower() == "write":
-                            if addr.id & 0x0100:
-                                return True
-            return False
-
-class ExportedSymbol(object): #Copypasta from rpc.py
-    def __init__(self, address, rpc=None, rplname=None, symname=None):
+class ExportedSymbol(object):
+    def __init__(self, address, rpc=None, rplname=None, symname=None, noprint=False):
         self.address = address
-        self.rpc = rpc
+        self.rpc     = rpc
         self.rplname = rplname
         self.symname = symname
-        print(symname, address)
-        
+        if not noprint: #Make command prompt not explode when using FS or SAVE functions
+            print(symname + " address: " + hexstr0(struct.unpack(">I", address)[0]))
+
     def __call__(self, *args):
-        return self.rpc.call(self.address, *args)
-    
-def symbol(rplname, symname): #Copypasta from rpc.py
-    if not symname in globals():
-        globals()[symname] = rpc.get_symbol(rplname, symname)
+        return self.rpc.call(self.address, *args) #Pass in arguments, run address
