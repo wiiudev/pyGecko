@@ -3,7 +3,7 @@
 static void start(int argc, void *argv);
 static int rungecko(struct bss_t *bss, int clientfd);
 static int recvwait(struct bss_t *bss, int sock, void *buffer, int len);
-/*static int recvbyte(struct bss_t *bss, int sock); */
+static int recvbyte(struct bss_t *bss, int sock);
 static int checkbyte(struct bss_t *bss, int sock);
 static int sendwait(struct bss_t *bss, int sock, const void *buffer, int len);
 static int sendbyte(struct bss_t *bss, int sock, unsigned char byte);
@@ -210,36 +210,33 @@ static int rungecko(struct bss_t *bss, int clientfd) {
 			break;
 		}
 		case 0x70: { /* cmd_rpc */
-			long long (*fun)(int, int, int, int, int, int, int, int, int, int);
-			int r3, r4, r5, r6, r7, r8, r9, r10, r11, r12;
+			long long (*fun)(int, int, int, int, int, int, int, int);
+			int r3, r4, r5, r6, r7, r8, r9, r10;
 			long long result;
 
-			ret = recvwait(bss, clientfd, buffer, 4 + 10 * 4);
+			ret = recvwait(bss, clientfd, buffer, 4 + 8 * 4);
 			CHECK_ERROR(ret < 0);
 
 			fun = ((void **)buffer)[0];
-			r3  = ((int  *) buffer)[1];
-			r4  = ((int  *) buffer)[2];
-			r5  = ((int  *) buffer)[3];
-			r6  = ((int  *) buffer)[4];
-			r7  = ((int  *) buffer)[5];
-			r8  = ((int  *) buffer)[6];
-			r9  = ((int  *) buffer)[7];
-			r10 = ((int  *) buffer)[8];
-			r11 = ((int  *) buffer)[9];
-			r12 = ((int  *) buffer)[10];
+			r3 = ((int *)buffer)[1];
+			r4 = ((int *)buffer)[2];
+			r5 = ((int *)buffer)[3];
+			r6 = ((int *)buffer)[4];
+			r7 = ((int *)buffer)[5];
+			r8 = ((int *)buffer)[6];
+			r9 = ((int *)buffer)[7];
+			r10 = ((int *)buffer)[8];
 
-			result = fun(r3, r4, r5, r6, r7, r8, r9, r10, r11, r12);
+			result = fun(r3, r4, r5, r6, r7, r8, r9, r10);
 
 			((long long *)buffer)[0] = result;
 			ret = sendwait(bss, clientfd, buffer, 8);
 			CHECK_ERROR(ret < 0);
 			break;
 		}
-		case 0x71: { /* cmd_getsymbol - copypasta from rpc.c */
-			int size;
-			ret = recvwait(bss, clientfd, &size, 4);
-			CHECK_ERROR(ret < 0);
+		case 0x71: { /* cmd_getsymbol */
+			char size = recvbyte(bss, clientfd);
+			CHECK_ERROR(size < 0);
 			ret = recvwait(bss, clientfd, buffer, size);
 			CHECK_ERROR(ret < 0);
 
@@ -251,8 +248,7 @@ static int rungecko(struct bss_t *bss, int clientfd) {
 			unsigned int module_handle, function_address;
 			OSDynLoad_Acquire(rplname, &module_handle);
 
-			char data;
-			ret = recvwait(bss, clientfd, &data, 1);
+			char data = recvbyte(bss, clientfd);
 			OSDynLoad_FindExport(module_handle, data, symname, &function_address);
 			
 			((int*)buffer)[0] = (int)function_address;
@@ -278,6 +274,39 @@ static int rungecko(struct bss_t *bss, int clientfd) {
 			}
 			((int *)buffer)[0] = resaddr;
 			ret = sendwait(bss, clientfd, buffer, 4);
+			CHECK_ERROR(ret < 0);
+			break;
+		}
+		case 0x80: { /* cmd_rpc_big */
+			long long (*fun)(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
+			int r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18;
+			long long result;
+
+			ret = recvwait(bss, clientfd, buffer, 4 + 16 * 4);
+			CHECK_ERROR(ret < 0);
+
+			fun = ((void **)buffer)[0];
+			r3  = ((int *)buffer)[1];
+			r4  = ((int *)buffer)[2];
+			r5  = ((int *)buffer)[3];
+			r6  = ((int *)buffer)[4];
+			r7  = ((int *)buffer)[5];
+			r8  = ((int *)buffer)[6];
+			r9  = ((int *)buffer)[7];
+			r10 = ((int *)buffer)[8];
+			r11 = ((int *)buffer)[9];
+			r12 = ((int *)buffer)[10];
+			r13 = ((int *)buffer)[11];
+			r14 = ((int *)buffer)[12];
+			r15 = ((int *)buffer)[13];
+			r16 = ((int *)buffer)[14];
+			r17 = ((int *)buffer)[15];
+			r18 = ((int *)buffer)[16];
+
+			result = fun(r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18);
+
+			((long long *)buffer)[0] = result;
+			ret = sendwait(bss, clientfd, buffer, 8);
 			CHECK_ERROR(ret < 0);
 			break;
 		}
@@ -326,14 +355,14 @@ error:
 	return ret;
 }
 
-/*static int recvbyte(struct bss_t *bss, int sock) {
+static int recvbyte(struct bss_t *bss, int sock) {
 	unsigned char buffer[1];
 	int ret;
 
 	ret = recvwait(bss, sock, buffer, 1);
 	if (ret < 0) return ret;
 	return buffer[0];
-} */
+}
 
 static int checkbyte(struct bss_t *bss, int sock) {
 	unsigned char buffer[1];
