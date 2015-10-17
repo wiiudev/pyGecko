@@ -2,8 +2,10 @@
 #define LOADER_H
 
 #include "../../../libwiiu/src/coreinit.h"
+#include "../../../libwiiu/src/draw.h"
 #include "../../../libwiiu/src/socket.h"
 #include "../../../libwiiu/src/types.h"
+#include "../../../libwiiu/src/vpad.h"
 
 /* Kernel address table */
 #if VER == 200
@@ -28,11 +30,9 @@
 #error "Unsupported Wii U software version"
 #endif
 
-void _start();
-
-void _entryPoint();
-
+void _main();
 void kern_write(void *addr, uint32_t value);
+void* memset(void* dst, const uint8_t val, uint32_t size);
 void* memcpy(void* dst, const void* src, uint32_t size);
 
 #endif /* LOADER_H */
