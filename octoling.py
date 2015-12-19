@@ -1,7 +1,7 @@
 #Codename Octohax
 from tcpgecko import TCPGecko
 import sys
-sys.argv.append("230")
+sys.argv.append("240")
 
 tcp = TCPGecko("192.168.0.8")
 if sys.argv[1] == "100": #For 1.0.0-?
@@ -57,5 +57,15 @@ elif sys.argv[1] == "230": #For 2.3.0
     tcp.writestr(0x12BE639C, b"Tnk_Rvl00")
     tcp.writestr(0x12BE63E8, b"Tnk_Rvl00")
     tcp.pokemem(0x12CCBB90, 0x00000000) #Enforce Female Inkling
+elif sys.argv[1] == "240": #For 2.4.0
+    tcp.writestr(0x10506AF8, b"Tnk_Rvl00")
+    tcp.writestr(0x105E4EA0, b"Tnk_Rvl00")
+    tcp.writestr(0x105ED7B8, b"Rival00")
+    tcp.writestr(0x105ED7C4, b"Rival00_Hlf")
+    tcp.writestr(0x105ED7D4, b"Rival_Squid")
+    tcp.writestr(0x12BE8350, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE839C, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE83E8, b"Tnk_Rvl00")
+    tcp.pokemem(0x12CCDB90, 0x00000000) #Enforce Female Inkling
 tcp.s.close()
 print("Done.")
