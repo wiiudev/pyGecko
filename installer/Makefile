@@ -37,7 +37,7 @@ main400:
 	$(CC) $(LDFLAGS) -o $(build)/code400.bin $(libs)/400/draw.o $(build)/*.o
 main310:
 	$(AS) $(project)/asm.s -o $(root)/asm.o
-	$(CC) $(CFLAGS) -DVER=310 $(project)/*.c
+	$(CC) $(CFLAGS) -DVER=400 $(project)/*.c
 	#-Wa,-a,-ad
 	mv -f $(root)/*.o $(build)
 	$(CC) $(LDFLAGS) -o $(build)/code310.bin $(libs)/310/draw.o $(build)/*.o
