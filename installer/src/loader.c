@@ -18,9 +18,9 @@
 	#define INSTALL_ADDR  0x011D3000
 	#define MAIN_JMP_ADDR 0x0101894C
 #elif VER == 400
-	#include "codehandler410.h" //TODO
+	#include "codehandler400.h"
 	#define INSTALL_ADDR  0x011DD000
-	#define MAIN_JMP_ADDR 0x0101C55C
+	#define MAIN_JMP_ADDR 0x0101BD4C
 #elif VER == 410
 	#include "codehandler410.h"
 	#define INSTALL_ADDR  0x011DD000
@@ -44,7 +44,7 @@
 		if (!(x)) \
 			OSFatal("Assertion failed " #x ".\n"); \
 	} while (0)
-		
+
 #define ALIGN_BACKWARD(x,align) \
 	((typeof(x))(((unsigned int)(x)) & (~(align-1))))
 
@@ -119,7 +119,7 @@ void _main()
 	memset(mem, 0, 0x100);
 
 	/* set restart flag to force quit browser */
-	IM_SetDeviceState(fd, mem, 3, 0, 0); 
+	IM_SetDeviceState(fd, mem, 3, 0, 0);
 	IM_Close(fd);
 	OSFreeToSystem(mem);
 
