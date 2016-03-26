@@ -1,3 +1,5 @@
+#You're probably better off using the GUI version, but...
+#https://gbatemp.net/threads/splatoon-colorizer.406463/
 from tcpgecko import TCPGecko
 from textwrap import wrap
 from struct   import pack
@@ -11,7 +13,7 @@ for i in range(1, 4): #Ignores Alpha since it doesn't use it
     for j in range(3): #Create the RGB floats
         Colors += pack(">f", ord(unhexlify(Color[j])) / 256)
     Colors += pack(">f", 1.0) #Alpha
-tcp.writestr(0x12D1AF70, Colors) #Only overwrites currently loaded color
+tcp.writestr(0x12D1CD78, Colors) #Only overwrites currently loaded color
                                  #Run a command right after the lobby is "ready"
 tcp.s.close()
 print("Done!")

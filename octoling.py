@@ -1,9 +1,33 @@
+# -*- coding: cp1252 -*-
 #Codename Octohax
+#To find Octohax offsets on newer versions, dump memory
+#in that area, eg 0x10500000 to 0x10700000, open in hex
+#editor, search "Tnk_Simple", there are only 2 results
+#Also search for Player00
+#There should be like a result or two before what you want
+#Looks like this:
+'''
+.k.Œ.....k. Riva
+l00.Rival00_Hlf.
+Rival_Squid.Play
+er00_anim...Play
+er_Squid_anim...
+Player01_anim...
+Player00....Play
+er00_Hlf....Play
+er_Squid....Play
+er01....Player01
+_Hlf....ToSquid.
+ToHuman.Sqd_Jet.
+'''
+#Then dump 0x12000000 to 0x14000000, search for Tnk_Simple,
+#should be first result, with three of them in a row with spacing
+
 from tcpgecko import TCPGecko
 import sys
-sys.argv.append("240")
+sys.argv.append("260")
 
-tcp = TCPGecko("192.168.0.8")
+tcp = TCPGecko("192.168.0.10")
 if sys.argv[1] == "100": #For 1.0.0-?
     tcp.writestr(0x105068F0, b"Tnk_Rvl00")
     tcp.writestr(0x1051A500, b"Tnk_Rvl00")
@@ -67,5 +91,27 @@ elif sys.argv[1] == "240": #For 2.4.0
     tcp.writestr(0x12BE839C, b"Tnk_Rvl00")
     tcp.writestr(0x12BE83E8, b"Tnk_Rvl00")
     tcp.pokemem(0x12CCDB90, 0x00000000) #Enforce Female Inkling
+elif sys.argv[1] == "250": #For 2.5.0
+    tcp.writestr(0x10506AF8, b"Tnk_Rvl00")
+    tcp.writestr(0x105E4EB8, b"Tnk_Rvl00")
+    tcp.writestr(0x105ED7D0, b"Rival00")
+    tcp.writestr(0x105ED7DC, b"Rival00_Hlf")
+    #Don't really need squid, looks bad without proper bone offsets
+    #tcp.writestr(0x105ED7D4, b"Rival_Squid")
+    tcp.writestr(0x12BE8350, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE839C, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE83E8, b"Tnk_Rvl00")
+    tcp.pokemem(0x12CCDB90, 0x00000000) #Enforce Female Inkling
+elif sys.argv[1] == "260": #For 2.6.0
+    tcp.writestr(0x10506B28, b"Tnk_Rvl00")
+    tcp.writestr(0x105E59B8, b"Tnk_Rvl00")
+    tcp.writestr(0x105EE350, b"Rival00")
+    tcp.writestr(0x105EE35C, b"Rival00_Hlf")
+    #Don't really need squid, looks bad without proper bone offsets
+    #tcp.writestr(0x105EE36C, b"Rival_Squid")
+    tcp.writestr(0x12BE9354, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE93A0, b"Tnk_Rvl00")
+    tcp.writestr(0x12BE93EC, b"Tnk_Rvl00")
+    tcp.pokemem(0x12CCF990, 0x00000000) #Enforce Female Inkling
 tcp.s.close()
 print("Done.")
