@@ -37,7 +37,7 @@ OBJ := $(patsubst %.S,build/%.o,$(patsubst %.c,build/%.o,$(SRC)))
 BUILD_REQ := $(filter-out $(wildcard build),build)
 BIN_REQ := $(filter-out $(wildcard bin),bin)
 
-all: bin/codehandler310.h bin/codehandler410.h bin/codehandler500.h bin/codehandler532.h bin/codehandler550.h
+all: bin/codehandler310.h bin/codehandler400.h bin/codehandler410.h bin/codehandler500.h bin/codehandler532.h bin/codehandler550.h
 
 bin/codehandler%.h: build/codehandler%.text.bin $(BIN_REQ)
 	xxd -i $< | sed "s/unsigned/static const unsigned/g;s/ler$*/ler/g;s/build_//g" > $@
@@ -60,4 +60,3 @@ build:
 
 clean:
 	rm -rf $(wildcard build) $(wildcard bin)
-
