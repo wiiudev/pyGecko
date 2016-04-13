@@ -20,12 +20,12 @@ er01....Player01
 _Hlf....ToSquid.
 ToHuman.Sqd_Jet.
 '''
-#Then dump 0x12000000 to 0x14000000, search for Tnk_Simple,
+#Then dump 0x12000000 to 0x13000000, search for Tnk_Simple,
 #should be first result, with three of them in a row with spacing
 
 from tcpgecko import TCPGecko
 import sys
-sys.argv.append("260")
+sys.argv.append("270")
 
 tcp = TCPGecko("192.168.0.10")
 if sys.argv[1] == "100": #For 1.0.0-?
@@ -113,5 +113,16 @@ elif sys.argv[1] == "260": #For 2.6.0
     tcp.writestr(0x12BE93A0, b"Tnk_Rvl00")
     tcp.writestr(0x12BE93EC, b"Tnk_Rvl00")
     tcp.pokemem(0x12CCF990, 0x00000000) #Enforce Female Inkling
+elif sys.argv[1] == "270": #For 2.7.0
+    tcp.writestr(0x10506B58, b"Tnk_Rvl00")
+    tcp.writestr(0x105E5F40, b"Tnk_Rvl00")
+    tcp.writestr(0x105EE968, b"Rival00")
+    tcp.writestr(0x105EE974, b"Rival00_Hlf")
+    #Don't really need squid, looks bad without proper bone offsets
+    #tcp.writestr(0x105EE984, b"Rival_Squid")
+    tcp.writestr(0x12BEA354, b"Tnk_Rvl00")
+    tcp.writestr(0x12BEA3A0, b"Tnk_Rvl00")
+    tcp.writestr(0x12BEA3EC, b"Tnk_Rvl00")
+    tcp.pokemem(0x12CD0D90, 0x00000000) #Enforce Female Inkling
 tcp.s.close()
 print("Done.")
