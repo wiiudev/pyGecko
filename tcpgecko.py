@@ -176,7 +176,7 @@ class TCPGecko:
     def FSReadDir(self):
         global printe
         if not hasattr(self, "pBuffer"): self.pBuffer = self.memalign(0x164, 0x20)
-        #print("pBuffer address: " + hexstr0(self.pBuffer))
+        print("pBuffer address: " + hexstr0(self.pBuffer))
         ret = self.function("coreinit.rpl", "FSReadDir", True, 0, self.pClient, self.pCmd, self.pDh, self.pBuffer, 0xFFFFFFFF)
         self.entry = self.readmem(self.pBuffer, 0x164)
         printe = getstr(self.entry, 100) + " "
