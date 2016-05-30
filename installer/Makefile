@@ -8,9 +8,15 @@ AS=powerpc-eabi-as
 CC=powerpc-eabi-gcc
 CFLAGS=-nostdinc -fno-builtin -c
 LDFLAGS=-T $(project)/link.ld -nostartfiles -nostdlib -s
-all: clean setup main532 main500 main410 main400 main310 main300 main210 main200
+all: clean setup main550 main532 main500 main410 main400 main310 main300
 setup:
 	mkdir -p $(root)/bin/
+main550:
+	$(AS) $(project)/asm.s -o $(root)/asm.o
+	$(CC) $(CFLAGS) -DVER=550 $(project)/*.c
+	#-Wa,-a,-ad
+	mv -f $(root)/*.o $(build)
+	$(CC) $(LDFLAGS) -o $(build)/code550.bin $(libs)/550/draw.o $(build)/*.o
 main532:
 	$(AS) $(project)/asm.s -o $(root)/asm.o
 	$(CC) $(CFLAGS) -DVER=532 $(project)/*.c
@@ -47,17 +53,5 @@ main300:
 	#-Wa,-a,-ad
 	mv -f $(root)/*.o $(build)
 	$(CC) $(LDFLAGS) -o $(build)/code300.bin $(libs)/300/draw.o $(build)/*.o
-main210:
-	$(AS) $(project)/asm.s -o $(root)/asm.o
-	$(CC) $(CFLAGS) -DVER=210 $(project)/*.c
-	#-Wa,-a,-ad
-	mv -f $(root)/*.o $(build)
-	$(CC) $(LDFLAGS) -o $(build)/code210.bin $(libs)/210/draw.o $(build)/*.o
-main200:
-	$(AS) $(project)/asm.s -o $(root)/asm.o
-	$(CC) $(CFLAGS) -DVER=200 $(project)/*.c
-	#-Wa,-a,-ad
-	mv -f $(root)/*.o $(build)
-	$(CC) $(LDFLAGS) -o $(build)/code200.bin $(libs)/200/draw.o $(build)/*.o
 clean:
 	rm -f -r $(build)/*

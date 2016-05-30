@@ -33,4 +33,3 @@ PROVIDE(MEMAllocFromDefaultHeap = 0x100A88A0);
 PROVIDE(MEMFreeToDefaultHeap = 0x100A88A4);
 PROVIDE(OSDynLoad_FindExport = 0x01023D88);
 PROVIDE(OSDynLoad_Acquire = 0x01022CBC);
-

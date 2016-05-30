@@ -27,7 +27,7 @@ from tcpgecko import TCPGecko
 import sys
 sys.argv.append("270")
 
-tcp = TCPGecko("192.168.0.10")
+tcp = TCPGecko("192.168.1.82")
 if sys.argv[1] == "100": #For 1.0.0-?
     tcp.writestr(0x105068F0, b"Tnk_Rvl00")
     tcp.writestr(0x1051A500, b"Tnk_Rvl00")
