@@ -25,7 +25,7 @@ ToHuman.Sqd_Jet.
 
 from tcpgecko import TCPGecko
 import sys
-sys.argv.append("270")
+sys.argv.append("280")
 
 tcp = TCPGecko("192.168.1.82")
 if sys.argv[1] == "100": #For 1.0.0-?
@@ -124,5 +124,16 @@ elif sys.argv[1] == "270": #For 2.7.0
     tcp.writestr(0x12BEA3A0, b"Tnk_Rvl00")
     tcp.writestr(0x12BEA3EC, b"Tnk_Rvl00")
     tcp.pokemem(0x12CD0D90, 0x00000000) #Enforce Female Inkling
+elif sys.argv[1] == "280": #For 2.8.0
+    tcp.writestr(0x10506B58, b"Tnk_Rvl00")
+    tcp.writestr(0x105E6000, b"Tnk_Rvl00")
+    tcp.writestr(0x105EEA28, b"Rival00")
+    tcp.writestr(0x105EEA34, b"Rival00_Hlf")
+    #Don't really need squid, looks bad without proper bone offsets
+    #tcp.writestr(0x105EE9A44, b"Rival_Squid")
+    tcp.writestr(0x12C1F354, b"Tnk_Rvl00")
+    tcp.writestr(0x12C1F3A0, b"Tnk_Rvl00")
+    tcp.writestr(0x12C1F3EC, b"Tnk_Rvl00")
+    tcp.pokemem(0x12D05D90, 0x00000000) #Enforce Female Inkling
 tcp.s.close()
 print("Done.")
