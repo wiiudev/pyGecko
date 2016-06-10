@@ -131,9 +131,9 @@ elif sys.argv[1] == "280": #For 2.8.0
     tcp.writestr(0x105EEA34, b"Rival00_Hlf")
     #Don't really need squid, looks bad without proper bone offsets
     #tcp.writestr(0x105EEA44, b"Rival_Squid")
-    tcp.writestr(0x12C1F354, b"Tnk_Rvl00")
-    tcp.writestr(0x12C1F3A0, b"Tnk_Rvl00")
-    tcp.writestr(0x12C1F3EC, b"Tnk_Rvl00")
-    tcp.pokemem(0x12D05D90, 0x00000000) #Enforce Female Inkling
+    tcp.writestr(0x12BEA354, b"Tnk_Rvl00")
+    tcp.writestr(0x12BEA3A0, b"Tnk_Rvl00")
+    tcp.writestr(0x12BEA3EC, b"Tnk_Rvl00")
+    tcp.pokemem(0x12CD0D90, 0x00000000) #Enforce Female Inkling
 tcp.s.close()
 print("Done.")
