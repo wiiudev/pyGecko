@@ -1,14 +1,19 @@
 from tcpgecko import TCPGecko
-tcp = TCPGecko("10.0.0.2")
-# make sure to check if your title exists, or else it will crash!
-# if it exists, it will return 1
-SYSCheckTitleExists = tcp.get_symbol("sysapp.rpl", "SYSCheckTitleExists")
-# first argument is the first 32-bit set of the Title ID
-# second argument is the second 32-bit set of the Title ID
-# for example, this is Wooly World (USA)
-SYSCheckTitleExists(0x0005000, 0x10184D00)
-# now here is the title id that you will launch
-# remember to have the game / disc in!!!!!
-SYSLaunchTitle(0x0005000, 0x10184D00)
+from binascii import hexlify, unhexlify
+import sys
+try: import __builtin__
+except: import builtins as __builtin__
+
+def hex(value, fill):
+    return "0x" + __builtin__.hex(value).lstrip("0x").rstrip("L").zfill(fill).upper()
+
+tcp = TCPGecko("192.168.0.10")
+title_id = 0x0005000010144F00 #Smash USA
+SYSCheckTitleExists = tcp.get_symbol("sysapp.rpl", "SYSCheckTitleExists", True)
+doesExist = SYSCheckTitleExists(title_id >> 32, title_id & 0xFFFFFFFF)
+if not doesExist: print("Title " + hex(title_id, 16) + " does not exist!")
+else:
+    SYSLaunchTitle = tcp.get_symbol("sysapp.rpl", "SYSLaunchTitle", True)
+    SYSLaunchTitle(title_id >> 32, title_id & 0xFFFFFFFF)
+    print("Game switched!")
 tcp.s.close()
-print("Game switched!")
