@@ -71,9 +71,9 @@ class TCPGecko:
         """
             Parameters
             ----------
-            address : int
+            address : integer (4)
                 Address to poke
-            value : int
+            value : integer (4)
                 Value to write
         """
         if not self.validrange(address, 4): raise BaseException("Address range not valid")
@@ -87,9 +87,9 @@ class TCPGecko:
         """
             Parameters
             ----------
-            address : int
+            address : integer (4)
                 Address to poke
-            value : char
+            value : integer (1)
                 Value to write
         """
         # In theory, you could just have pokemem do 'value.bit_length() - 1' and deduce the cmd to send
@@ -106,9 +106,9 @@ class TCPGecko:
         """
             Parameters
             ----------
-            address : int
+            address : integer (4)
                 Address to poke
-            value : short
+            value : integer (2)
                 Value to write
         """
         # In theory, you could just have pokemem do 'value.bit_length() - 1' and deduce the cmd to send
