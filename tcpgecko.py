@@ -68,9 +68,55 @@ class TCPGecko:
         return
 
     def pokemem(self, address, value): #Only takes 4 bytes, may need to run multiple times
+        """
+            Parameters
+            ----------
+            address : int
+                Address to poke
+            value : int
+                Value to write
+        """
         if not self.validrange(address, 4): raise BaseException("Address range not valid")
         if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
         self.s.send(b"\x03") #cmd_pokemem
+        request = struct.pack(">II", int(address), int(value))
+        self.s.send(request) #Done, move on
+        return
+
+    def pokemem8(self, address, value):
+        """
+            Parameters
+            ----------
+            address : int
+                Address to poke
+            value : char
+                Value to write
+        """
+        # In theory, you could just have pokemem do 'value.bit_length() - 1' and deduce the cmd to send
+        # as the packing will always need to be two unsigned ints regardless of the value size being 8 or 16
+        # Needs may vary down the road and keeping the methods separate may be for the best
+        if not self.validrange(address, 4): raise BaseException("Address range not valid")
+        if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
+        self.s.send(b"\x01") #cmd_poke08
+        request = struct.pack(">II", int(address), int(value))
+        self.s.send(request) #Done, move on
+        return
+
+    def pokemem16(self, address, value):
+        """
+            Parameters
+            ----------
+            address : int
+                Address to poke
+            value : short
+                Value to write
+        """
+        # In theory, you could just have pokemem do 'value.bit_length() - 1' and deduce the cmd to send
+        # as the packing will always need to be two unsigned ints regardless of the value size being 8 or 16
+        # Needs may vary down the road and keeping the methods separate may be for the best
+        if not self.validrange(address, 4): raise BaseException("Address range not valid")
+        if not self.validaccess(address, 4, "write"): raise BaseException("Cannot write to address")
+        self.s.send(b"\x02") #cmd_poke16
         request = struct.pack(">II", int(address), int(value))
         self.s.send(request) #Done, move on
         return
