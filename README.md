@@ -1,19 +1,11 @@
-
-# pyGecko
+# uGecko
 Python library for use with TCPGecko. Requires kernel exploit to use.
 
-**Files:**
+All the library is contained in the file named uGecko.py (WARNING: Only tested on Python 3.8). You can find examples in the folder `examples`.
 
-tcpgecko.py is the actual library, can use just it in IDLE (only tested on python 2)
+# Credits
 
-octoling.py is a sample script to use it, to swap Inkling model with Octolings in Splatoon and edit money.
-
-common.py is another library to make things easier to work with.
-
-codehandler is in /codehandler, just run make
-
-**Credits:**
-
-Python library: NWPlayer123
-
-TCPGecko codehandler: Chadderz, Marionumber1
+**NWPlayer123, wj44, and wiiudev** for `pyGecko`
+**Chadderz and Marionumber1** for `TCPGecko codehandler`
+**BullyWiiPlaza** for the current version of `TCPGecko`
+**VCoding** for this modified version of `pyGecko`, specially designed for the `TCPGecko version` of **BullyWiiPlaza**.
