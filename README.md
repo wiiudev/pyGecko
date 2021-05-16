@@ -5,7 +5,7 @@ All the library is contained in the file named uGecko.py (WARNING: Only tested o
 
 # Credits
 
-**NWPlayer123, wj44, and wiiudev** for `pyGecko`
-**Chadderz and Marionumber1** for `TCPGecko codehandler`
-**BullyWiiPlaza** for the current version of `TCPGecko`
+**NWPlayer123, wj44, and wiiudev** for `pyGecko`<br />
+**Chadderz and Marionumber1** for `TCPGecko codehandler`<br />
+**BullyWiiPlaza** for the current version of `TCPGecko`<br />
 **VCoding** for this modified version of `pyGecko`, specially designed for the `TCPGecko version` of **BullyWiiPlaza**.
