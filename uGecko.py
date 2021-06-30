@@ -153,14 +153,11 @@ class uGecko:
 
 	def writeString(self, address, string, skip = False):
 		if self.connected:
-			if not skip:
-				if not self.validRange(address, len(string)): raise BaseException("Address range not valid")
-				if not self.validAccess(address, len(string), "write"): raise BaseException("Cannot write to address")
 			if type(string) != bytes: string = bytes(string, "UTF-8") #Sanitize
 			if len(string) % 4: string += bytes((4 - (len(string) % 4)) * b"\x00")
 			pos = 0
 			for x in range(int(len(string) / 4)):
-				self.poke32(address, struct.unpack(">I", string[pos:pos + 4])[0])
+				self.poke32(address, struct.unpack(">I", string[pos:pos + 4])[0], skip)
 				address += 4;pos += 4
 			return
 		else: raise BaseException("No connection is in progress!")
