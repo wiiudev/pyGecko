@@ -23,7 +23,9 @@ class uGecko:
 		else:
 			if not self.connected:
 				try:
+					self.socket.settimeout(5)
 					self.socket.connect((str(self.ip), 7331))
+					self.socket.settimeout(None)
 					self.connected = True
 				except: raise BaseException(f"Unable to connect to {self.ip}!")
 			else: raise BaseException("A connection is already in progress!")
