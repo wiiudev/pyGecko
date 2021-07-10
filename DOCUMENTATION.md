@@ -13,11 +13,14 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |poke16()|Allows to change the value in the ram|`gecko.poke16(address, 0x0000)`| None
 |poke32()|Allows to change the value in the ram|`gecko.poke32(address, 0x00000000)`| None
 |serialPoke()|Allows to write a specific value on several addresses of the ram.|`gecko.poke32(addressTable, 0x3F800000)`| None
-|writeString()| Allows you to write text in the ram | `gecko.writeString(address, "Hello World!")` | None
 |kernelWrite()|  | `gecko.kernelWrite(0x10000000, 0x00000000)`| None
 ||||
 |read()| Allows to know what is the value of an address | `gecko.read(address, length)` | Value
 |kernelRead()| | `gecko.kernelRead(address)`| Value
+||||
+|writeString()| Allows you to write text in the ram | `gecko.writeString(address, "Hello World!")` | None
+|readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | UTF-8
+|clearString()| Allows you to delete text written in the ram | `gecko.clearString(startAddress, endAddress)` | None
 ||||
 |isConsolePaused()|Allows to know if the console is paused or not|`gecko.isConsolePaused()`| Boolean
 |pauseConsole()| Allows you to pause the console | `gecko.pauseConsole()` | None

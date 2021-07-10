@@ -18,12 +18,12 @@ class uGecko:
 		self.ip = ip
 		self.connected = False
 
-	def connect(self):
+	def connect(self, timeout = 5):
 		if self.ip == None or self.ip == "": raise BaseException("No ip address has been entered!")
 		else:
 			if not self.connected:
 				try:
-					self.socket.settimeout(5)
+					self.socket.settimeout(timeout)
 					self.socket.connect((str(self.ip), 7331))
 					self.socket.settimeout(None)
 					self.connected = True
@@ -132,27 +132,6 @@ class uGecko:
 			else: raise BaseException("Address is not a list!")
 		else: raise BaseException("No connection is in progress!")
 
-	"""
-	def upload(self, startAddress, endAddress, value, skip = False):
-		length = endAddress - startAddress
-		fullChunk = int(length / 0x400)
-		lastChunk = length % 0x400
-		allChunk = fullChunk
-		if lastChunk > 0:
-			allChunk += 1
-		#self.socket.send(b'\x41')
-		#req = struct.pack(">II", startAddress, endAddress)
-		#self.socket.send(req)
-		chunk = 0
-		newValue = re.findall('........', str(value))
-		while chunk * 0x400 < fullChunk:
-			print(f"{hex(startAddress + chunk * 0x400)} : {newValue[chunk]}")
-			#chunkReq = struct.pack('>I', value)
-			# self.socket.send(chunkReq)
-			#print(value)
-			chunk += 1
-	"""
-
 	def writeString(self, address, string, skip = False):
 		if self.connected:
 			if type(string) != bytes: string = bytes(string, "UTF-8") #Sanitize
@@ -162,6 +141,22 @@ class uGecko:
 				self.poke32(address, struct.unpack(">I", string[pos:pos + 4])[0], skip)
 				address += 4;pos += 4
 			return
+		else: raise BaseException("No connection is in progress!")
+
+	def clearString(self, startAddress, endAddress, skip = False):
+		if self.connected:
+			length = endAddress - startAddress
+			i = 0
+			while i <= length:
+				self.poke32(startAddress + i, 0x00000000, skip)
+				i += 4
+			return
+		else: raise BaseException("No connection is in progress!")
+
+	def readString(self, address, length, skip = False):
+		if self.connected:
+			string = self.read(address, length, skip)
+			return string.decode('UTF-8')
 		else: raise BaseException("No connection is in progress!")
 
 	def read(self, address, length, skip = False):
