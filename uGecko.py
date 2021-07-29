@@ -19,16 +19,15 @@ class uGecko:
 		self.connected:bool = False
 
 	def connect(self, timeout:int = 5)->None:
-		if self.ip == None or self.ip == "": raise BaseException("No ip address has been entered!")
-		else:
-			if not self.connected:
-				try:
-					self.socket.settimeout(timeout)
-					self.socket.connect((str(self.ip), 7331))
-					self.socket.settimeout(None)
-					self.connected = True
-				except: raise BaseException(f"Unable to connect to {self.ip}!")
-			else: raise BaseException("A connection is already in progress!")
+		if self.ip and self.ip != "" and not self.connected: 
+			try:
+				self.socket.settimeout(timeout)
+				self.socket.connect((str(self.ip), 7331))
+				self.socket.settimeout(None)
+				self.connected = True
+			except: raise BaseException(f"Unable to connect to {self.ip}!")
+		else: raise BaseException("A connection is already in progress!")
+			
 
 	def disconnect(self)->None:
 		if self.connected:
@@ -86,9 +85,8 @@ class uGecko:
 		else: return False
 
 	def isValidMemoryArea(self,address:int, lenght:int, should_validate:bool)->bool:
-		return self.validRange(address, lenght) and self.validAccess(address, lenght, "write") * should_validate
-			# if not self.validRange(address, lenght): 			raise BaseException("Address range not valid")
-			# if not self.validAccess(address, lenght, "write"): 	raise BaseException("Cannot write to address")
+		if should_validate: return self.validRange(address, lenght) and self.validAccess(address, lenght, "write")
+		return True
 
 	def poke8(self, address:int, value:int, skip:bool = False)->None:
 		if self.connected and self.isValidMemoryArea(address, 1, skip):
@@ -234,16 +232,16 @@ class uGecko:
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def getAccountID(self):
+	def getAccountID(self)->str:
 		if self.connected:
 			self.socket.send(b'\x57')
 			return hex(int.from_bytes(self.socket.recv(4), "big")).replace("0x", "")
 		else: raise BaseException("No connection is in progress!")
 
-	def getCoreHandlerAddress(self):
+	def getCoreHandlerAddress(self)->int:
 		if self.connected:
 			self.socket.send(b'\x55')
-			return hex(int.from_bytes(self.socket.recv(4), "big"))
+			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
 	def getDataBufferSize(self)->int:
@@ -257,7 +255,7 @@ class uGecko:
 			self.socket.send(b'\x72')
 			req = struct.pack(">III", startAddress, value, length)
 			self.socket.send(req)
-			return hex(int.from_bytes(self.socket.recv(4), "big"))
+			return int.from_bytes(self.socket.recv(4), "big")	
 		else: raise BaseException("No connection is in progress!")
 
 	def advancedSearch(self, start:int, length:int, value:int, kernel:int, limit:int, aligned:int = 1)->list:
@@ -271,7 +269,7 @@ class uGecko:
 			count = int.from_bytes(self.socket.recv(4), "big") / 4
 			foundOffset = []
 			for i in range(int(count)):
-				foundOffset.append(hex(int.from_bytes(self.socket.recv(4), "big")))
+				foundOffset.append(int.from_bytes(self.socket.recv(4), "big"))
 			return foundOffset
 		else: raise BaseException("No connection is in progress!")
 
