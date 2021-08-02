@@ -247,7 +247,7 @@ class uGecko:
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def getTitleID(self):
+	def getTitleID(self)->int:
 		function = self.getSymbol("coreinit.rpl", "OSGetTitleID")
 		return self.call(function)
 
