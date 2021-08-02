@@ -184,10 +184,7 @@ class uGecko:
 		else: raise BaseException("No connection is in progress!")
 
 	def kernelRead(self, address:int, skip:bool = False)->int:
-		if self.connected:
-			if not skip:
-				if not self.validRange(address, 4): raise BaseException("Address range not valid")
-				if not self.validAccess(address, 4, "read"): raise BaseException("Cannot read to address")
+		if self.connected and self.isValidMemoryArea(address, 4, skip):
 			self.socket.send(b'\x0C')
 			req = struct.pack(">I", int(address))
 			self.socket.send(req)
@@ -250,6 +247,10 @@ class uGecko:
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
+	def getTitleID(self):
+		function = self.getSymbol("coreinit.rpl", "OSGetTitleID")
+		return self.call(function)
+
 	def search(self, startAddress:int, value:int, length:int)->int:
 		if self.connected:
 			self.socket.send(b'\x72')
@@ -297,7 +298,7 @@ class uGecko:
 				req = struct.pack(">I8I", address, *arguments)
 				self.socket.send(b'\x70')
 				self.socket.send(req)
-				return struct.unpack('>I', self.socket.recv(8)[:4])[0]
+				return struct.unpack('>Q', self.socket.recv(8))[0]
 			else:
 				raise BaseException("Too many arguments!")
 		else: raise BaseException("No connection is in progress!")
