@@ -19,7 +19,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |kernelRead()| Reads a value to memory with Kernel Privileges | `gecko.kernelRead(address)`| Value
 ||||
 |writeString()| Allows you to write text in the ram | `gecko.writeString(address, "Hello World!")` | None
-|readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | UTF-8
+|readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | String(UTF-8)
 |clearString()| Allows you to delete text written in the ram | `gecko.clearString(startAddress, endAddress)` | None
 ||||
 |isConsolePaused()|Allows to know if the console is paused or not|`gecko.isConsolePaused()`| Boolean
@@ -33,6 +33,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |getAccountID()| Allows you to retrieve the identifier of the account currently connected to the console. | `gecko.getAccountID()`| String
 |getCoreHandlerAddress()| Allows you to get the address of the core handler. | `gecko.getCoreHandlerAddress()`| Hex
 |getDataBufferSize()| return the Max size of the DataBuffer | `gecko.getDataBufferSize()`| Int
+|getTitleID()| returns the current app titleID | `gecko.getTitleID()`| Int
 |getEntryPointAddress()| returns the Entry point of the currently running app | `gecko.getEntryPointAddress()`| Hex
 |runKernelCopyService()| | `gecko.runKernelCopyService()`| None
 ||||
