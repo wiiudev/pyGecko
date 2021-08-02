@@ -28,7 +28,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 ||||
 |getServerStatus()| Allows to know the status of the server | `gecko.getServerStatus()`| Int (0 or 1)
 |getServerVersion()| Get the server version (TCPGecko version) | `gecko.getServerVersion()`|  String
-|getOsVersion()| Allows to recover the version of the console | `gecko.getOsVersion()`| Int
+|getOsVersion()| Allows to get the version of the console | `gecko.getOsVersion()`| Int
 |getVersionHash()| Allows to get the hash of the version | `gecko.getVersionHash()`| Int
 |getAccountID()| Allows you to retrieve the identifier of the account currently connected to the console. | `gecko.getAccountID()`| String
 |getCoreHandlerAddress()| Allows you to get the address of the core handler. | `gecko.getCoreHandlerAddress()`| Hex
