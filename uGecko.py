@@ -16,30 +16,29 @@ class uGecko:
 		if not onlyCharactersIpAdd(ip): raise BaseException("The entered IP address is not only composed of numbers and dots.") 
 		if not checkip(ip): raise BaseException("The entered IP address does not have a valid structure!")
 		self.ip = ip
-		self.connected = False
+		self.connected:bool = False
 
-	def connect(self, timeout = 5):
-		if self.ip == None or self.ip == "": raise BaseException("No ip address has been entered!")
-		else:
-			if not self.connected:
-				try:
-					self.socket.settimeout(timeout)
-					self.socket.connect((str(self.ip), 7331))
-					self.socket.settimeout(None)
-					self.connected = True
-				except: raise BaseException(f"Unable to connect to {self.ip}!")
-			else: raise BaseException("A connection is already in progress!")
+	def connect(self, timeout:int = 5)->None:
+		if self.ip and self.ip != "" and not self.connected: 
+			try:
+				self.socket.settimeout(timeout)
+				self.socket.connect((str(self.ip), 7331))
+				self.socket.settimeout(None)
+				self.connected = True
+			except: raise BaseException(f"Unable to connect to {self.ip}!")
+		else: raise BaseException("A connection is already in progress!")
+			
 
-	def disconnect(self):
+	def disconnect(self)->None:
 		if self.connected:
 			self.socket.close() # TODO: Make checks
 			self.connected = False
 		else: raise BaseException("No connection is in progress!")
-
-	def isConnected(self):
+	
+	def isConnected(self)->bool:
 		return self.connected
 
-	def validRange(self, address, length):
+	def validRange(self, address, length)->bool:
 		if   0x01000000 <= address and address + length <= 0x01800000: return True
 		elif 0x0E000000 <= address and address + length <= 0x10000000: return True #Depends on game
 		elif 0x10000000 <= address and address + length <= 0x50000000: return True #Doesn't quite go to 5
@@ -52,7 +51,7 @@ class uGecko:
 		elif 0xFFFE0000 <= address and address + length <= 0xFFFFFFFF: return True
 		else: return False
 
-	def validAccess(self, address, length, access):
+	def validAccess(self, address:int, length:int, access:str)->bool:
 		if   0x01000000 <= address and address + length <= 0x01800000:
 			if access.lower() == "read" : return True
 			if access.lower() == "write": return False
@@ -85,54 +84,36 @@ class uGecko:
 			if access.lower() == "write": return True
 		else: return False
 
-	def poke8(self, address, value, skip = False):
-		if self.connected:
-			if not skip:
-				if not self.validRange(address, 1): raise BaseException("Address range not valid")
-				if not self.validAccess(address, 1, "write"): raise BaseException("Cannot write to address")
+	def isValidMemoryArea(self,address:int, lenght:int, should_validate:bool)->bool:
+		if should_validate: return self.validRange(address, lenght) and self.validAccess(address, lenght, "write")
+		return True
+
+	def poke8(self, address:int, value:int, skip:bool = False)->None:
+		if self.connected and self.isValidMemoryArea(address, 1, skip):
 			self.socket.send(b'\x01')
-			req = struct.pack(">II", int(address), int(value))
+			req = struct.pack(">II", address, value)
 			self.socket.send(req)
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def poke16(self, address, value, skip = False):
-		if self.connected:
-			if not skip:
-				if not self.validRange(address, 2): raise BaseException("Address range not valid")
-				if not self.validAccess(address, 2, "write"): raise BaseException("Cannot write to address")
+	def poke16(self, address:int, value:int, skip:bool = False)->None:
+		if self.connected and self.isValidMemoryArea(address, 2, skip):
 			self.socket.send(b'\x02')
-			req = struct.pack(">II", int(address), int(value))
+			req = struct.pack(">II", address, value)
 			self.socket.send(req)
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def poke32(self, address, value, skip = False):
-		if self.connected:
-			if not skip:
-				if not self.validRange(address, 4): raise BaseException("Address range not valid")
-				if not self.validAccess(address, 4, "write"): raise BaseException("Cannot write to address")
+	def poke32(self, address:int, value:int, skip:bool = False)->None:
+		if self.connected and self.isValidMemoryArea(address, 4, skip):
 			self.socket.send(b'\x03')
-			req = struct.pack(">II", int(address), int(value))
+			req = struct.pack(">II", address, value)
 			self.socket.send(req)
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def serialPoke(self, addressTable, value, skip = False):
-		if self.connected:
-			if isinstance(addressTable, list):
-				for address in addressTable:
-					if not skip:
-						if not self.validRange(address, 4): raise BaseException("Address range not valid")
-						if not self.validAccess(address, 4, "write"): raise BaseException("Cannot write to address")
-					self.socket.send(b"\x03")
-					req = struct.pack(">II", address, value)
-					self.socket.send(req)
-				return
-			else: raise BaseException("Address is not a list!")
-		else: raise BaseException("No connection is in progress!")
+	def serialPoke(self, addressTable:list, value:int, skip:bool = False)->None:
+		for address in addressTable:
+			if type(address)==int: self.poke32(address, value,skip)
 
-	def writeString(self, address, string, skip = False):
+	def writeString(self, address:int, string:str, skip:bool = False)->None:
 		if self.connected:
 			if type(string) != bytes: string = bytes(string, "UTF-8") #Sanitize
 			if len(string) % 4: string += bytes((4 - (len(string) % 4)) * b"\x00")
@@ -140,26 +121,24 @@ class uGecko:
 			for x in range(int(len(string) / 4)):
 				self.poke32(address, struct.unpack(">I", string[pos:pos + 4])[0], skip)
 				address += 4;pos += 4
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def clearString(self, startAddress, endAddress, skip = False):
+	def clearString(self, startAddress:int, endAddress:int, skip = False)->None:
 		if self.connected:
 			length = endAddress - startAddress
 			i = 0
 			while i <= length:
 				self.poke32(startAddress + i, 0x00000000, skip)
 				i += 4
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def readString(self, address, length, skip = False):
+	def readString(self, address:int, length:int, skip:bool = False)->str:
 		if self.connected:
 			string = self.read(address, length, skip)
 			return string.decode('UTF-8')
 		else: raise BaseException("No connection is in progress!")
 
-	def read(self, address, length, skip = False):
+	def read(self, address:int, length:int, skip:bool = False)->bytearray:
 		if self.connected:
 			if not skip:
 				if length == 0: raise BaseException("Reading memory requires a length!")
@@ -194,7 +173,7 @@ class uGecko:
 			return ret
 		else: raise BaseException("No connection is in progress!")
 
-	def kernelWrite(self, address, value, skip = False):
+	def kernelWrite(self, address:int, value:int, skip:bool = False)->None:
 		if self.connected:
 			if not skip:
 				if not self.validRange(address, 4): raise BaseException("Address range not valid")
@@ -202,87 +181,85 @@ class uGecko:
 			self.socket.send(b'\x0B')
 			req = struct.pack(">II", int(address), int(value))
 			self.socket.send(req)
-			return
 		else: raise BaseException("No connection is in progress!")
 
-	def kernelRead(self, address, skip = False):
-		if self.connected:
-			if not skip:
-				if not self.validRange(address, 4): raise BaseException("Address range not valid")
-				if not self.validAccess(address, 4, "read"): raise BaseException("Cannot read to address")
+	def kernelRead(self, address:int, skip:bool = False)->int:
+		if self.connected and self.isValidMemoryArea(address, 4, skip):
 			self.socket.send(b'\x0C')
 			req = struct.pack(">I", int(address))
 			self.socket.send(req)
 			return struct.unpack(">I", self.socket.recv(4))[0]
 		else: raise BaseException("No connection is in progress!")
 
-	def getServerStatus(self):
+	def getServerStatus(self)->int:
 		if self.connected:
 			self.socket.send(b'\x50')
 			return int.from_bytes(self.socket.recv(1), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def isConsolePaused(self):
+	def isConsolePaused(self)->bool:
 		if self.connected:
 			self.socket.send(b'\x84')
-			val = int.from_bytes(self.socket.recv(1), "big")
-			if val == 1: return True
-			else: return False
+			return int.from_bytes(self.socket.recv(1), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def pauseConsole(self):
+	def pauseConsole(self)->None:
 		if self.connected: self.socket.send(b'\x82')
 		else: raise BaseException("No connection is in progress!")
 
-	def resumeConsole(self):
+	def resumeConsole(self)->None:
 		if self.connected: self.socket.send(b'\x83')
 		else: raise BaseException("No connection is in progress!")
 
-	def getServerVersion(self):
+	def getServerVersion(self)->str:
 		if self.connected:
 			self.socket.send(b'\x99')
 			return self.socket.recv(16).decode("UTF-8").replace('\n', '')
 		else: raise BaseException("No connection is in progress!")
 
-	def getOsVersion(self):
+	def getOsVersion(self)->int:
 		if self.connected:
 			self.socket.send(b'\x9A')
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def getVersionHash(self):
+	def getVersionHash(self)->int:
 		if self.connected:
 			self.socket.send(b'\xE0')
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def getAccountID(self):
+	def getAccountID(self)->str:
 		if self.connected:
 			self.socket.send(b'\x57')
 			return hex(int.from_bytes(self.socket.recv(4), "big")).replace("0x", "")
 		else: raise BaseException("No connection is in progress!")
 
-	def getCoreHandlerAddress(self):
+	def getCoreHandlerAddress(self)->int:
 		if self.connected:
 			self.socket.send(b'\x55')
-			return hex(int.from_bytes(self.socket.recv(4), "big"))
+			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def getDataBufferSize(self):
+	def getDataBufferSize(self)->int:
 		if self.connected:
 			self.socket.send(b'\x51')
 			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def search(self, startAddress, value, length):
+	def getTitleID(self)->int:
+		function = self.getSymbol("coreinit.rpl", "OSGetTitleID")
+		return self.call(function)
+
+	def search(self, startAddress:int, value:int, length:int)->int:
 		if self.connected:
 			self.socket.send(b'\x72')
-			req = struct.pack(">III", int(startAddress), int(value), int(length))
+			req = struct.pack(">III", startAddress, value, length)
 			self.socket.send(req)
-			return hex(int.from_bytes(self.socket.recv(4), "big"))
+			return int.from_bytes(self.socket.recv(4), "big")	
 		else: raise BaseException("No connection is in progress!")
 
-	def advancedSearch(self, start, length, value, kernel, limit, aligned = 1):
+	def advancedSearch(self, start:int, length:int, value:int, kernel:int, limit:int, aligned:int = 1)->list:
 		if self.connected:
 			self.socket.send(b'\x73')
 			req_val = struct.pack(">I", int(value))
@@ -293,11 +270,11 @@ class uGecko:
 			count = int.from_bytes(self.socket.recv(4), "big") / 4
 			foundOffset = []
 			for i in range(int(count)):
-				foundOffset.append(hex(int.from_bytes(self.socket.recv(4), "big")))
+				foundOffset.append(int.from_bytes(self.socket.recv(4), "big"))
 			return foundOffset
 		else: raise BaseException("No connection is in progress!")
 
-	def getSymbol(self, rplname, sysname, data = 0):
+	def getSymbol(self, rplname:str, sysname:str, data = 0)->int:
 		if self.connected:
 			self.socket.send(b'\x71')
 			req = struct.pack('>II', 8, 8 + len(rplname) + 1)
@@ -311,7 +288,7 @@ class uGecko:
 			return self.socket.recv(4)
 		else: raise BaseException("No connection is in progress!")
 
-	def call(self, address, *args):
+	def call(self, address:int, *args):
 		if self.connected:
 			arguments = list(args)
 			if len(arguments) <= 8:
@@ -321,33 +298,33 @@ class uGecko:
 				req = struct.pack(">I8I", address, *arguments)
 				self.socket.send(b'\x70')
 				self.socket.send(req)
-				return struct.unpack('>I', self.socket.recv(8)[:4])[0]
+				return struct.unpack('>Q', self.socket.recv(8))[0]
 			else:
 				raise BaseException("Too many arguments!")
 		else: raise BaseException("No connection is in progress!")
 
-	def getEntryPointAddress(self):
+	def getEntryPointAddress(self)->int:
 		if self.connected:
 			self.socket.send(b'\xB1')
-			return hex(int.from_bytes(self.socket.recv(4), "big"))
+			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise BaseException("No connection is in progress!")
 
-	def runKernelCopyService(self):
+	def runKernelCopyService(self)->None:
 		if self.connected: self.socket.send(b'\xCD')
 		else: raise BaseException("No connection is in progress!")
 
-	def clearAssembly(self):
+	def clearAssembly(self)->None:
 		if self.connected: self.socket.send(b'\xE2')
 		else: raise BaseException("No connection is in progress!")
 
-	def excecuteAssembly(self, assembly):
+	def excecuteAssembly(self, assembly:str)->None:
 		if self.connected:
 			self.socket.send(b'\x81')
 			req = assembly.encode('UTF-8')
 			self.socket.send(req)
 		else: raise BaseException("No connection is in progress!")
 
-	def persistAssembly(self, assembly):
+	def persistAssembly(self, assembly:str)->None:
 		if self.connected:
 			self.socket.send(b'\xE1')
 			req = assembly.encode('UTF-8')
