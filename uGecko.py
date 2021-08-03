@@ -287,7 +287,7 @@ class uGecko:
 			return self.socket.recv(4)
 		else: raise Exception("No connection is in progress!")
 
-	def call(self, address:int, *args):
+	def call(self, address:int, *args, recv:int = 8):
 		if self.connected:
 			arguments = list(args)
 			if len(arguments) <= 8:
@@ -297,6 +297,7 @@ class uGecko:
 				req = struct.pack(">I8I", address, *arguments)
 				self.socket.send(b'\x70')
 				self.socket.send(req)
+				if recv == 4: return struct.unpack('>I', self.socket.recv(4))[0]
 				return struct.unpack('>Q', self.socket.recv(8))[0]
 			else:
 				raise Exception("Too many arguments!")
