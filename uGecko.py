@@ -84,8 +84,8 @@ class uGecko:
 			if access.lower() == "write": return True
 		else: return False
 
-	def isValidMemoryArea(self,address:int, lenght:int, should_validate:bool)->bool:
-		if should_validate: return self.validRange(address, lenght) and self.validAccess(address, lenght, "write")
+	def isValidMemoryArea(self,address:int, length:int, should_validate:bool)->bool:
+		if should_validate: return self.validRange(address, length) and self.validAccess(address, length, "write")
 		return True
 
 	def poke8(self, address:int, value:int, skip:bool = False)->None:
