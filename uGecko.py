@@ -87,9 +87,9 @@ class uGecko:
 			if access.lower() == "write": return True
 		else: return False
 
-	def isValidMemoryArea(self, address:int, length:int, should_validate:bool, type:str = "write")->bool:
+	def isValidMemoryArea(self, address:int, length:int, skip_verification:bool, type:str = "write")->bool:
 		if self.connected:
-			if should_validate: return self.validRange(address, length) and self.validAccess(address, length, type)
+			if not skip_verification: return self.validRange(address, length) and self.validAccess(address, length, type)
 			return True
 		else: raise Exception("No connection is in progress!")
 
