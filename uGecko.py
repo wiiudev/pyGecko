@@ -128,7 +128,7 @@ class uGecko:
 				address += 4;pos += 4
 		else: raise Exception("No connection is in progress!")
 
-	def clearString(self, startAddress:int, endAddress:int, skip = False)->None:
+	def clearString(self, startAddress:int, endAddress:int, skip:bool = False)->None:
 		if self.connected:
 			length = endAddress - startAddress
 			i = 0
@@ -247,8 +247,7 @@ class uGecko:
 		else: raise Exception("No connection is in progress!")
 
 	def getTitleID(self)->int:
-		function = self.getSymbol("coreinit.rpl", "OSGetTitleID")
-		return self.call(function)
+		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"))
 
 	def search(self, startAddress:int, value:int, length:int)->int:
 		if self.connected:
@@ -330,3 +329,24 @@ class uGecko:
 			req = assembly.encode('UTF-8')
 			self.socket.send(req)
 		else: raise Exception("No connection is in progress!")
+
+	def upload(self, startAddress: int, input: str, skip:bool = False) -> None:
+		total_chunk = len(input) // 8
+		rest_chunk  = len(input) % 8
+
+		i = 0
+		while i < total_chunk:
+			self.poke32(startAddress + i * 4, int(input[i * 8:i * 8 + 8], 16), skip)
+			i += 1
+
+		if rest_chunk != 0:
+			rest = re.findall(".", input[i * 8:i * 8 + 8])
+			while len(rest) < 8:
+				rest.append('0')
+			self.poke32(startAddress + i * 4, int("".join(rest), 16), skip)
+
+	def dump(self, startAddress: int, endAddress: int, skip:bool = False) -> bytearray:
+		return self.read(startAddress, endAddress - startAddress, skip)
+
+	def allocateSystemMemory(self, size: int) -> int:
+		return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, 4, recv = 4)
