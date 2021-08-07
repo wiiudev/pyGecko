@@ -234,7 +234,7 @@ class uGecko:
 			return hex(int.from_bytes(self.socket.recv(4), "big")).replace("0x", "")
 		else: raise Exception("No connection is in progress!")
 
-	def getCoreHandlerAddress(self)->int:
+	def getCodeHandlerAddress(self)->int:
 		if self.connected:
 			self.socket.send(b'\x55')
 			return int.from_bytes(self.socket.recv(4), "big")
