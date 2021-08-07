@@ -24,9 +24,9 @@ class uGecko:
 	def connect(self, timeout:int = 5)->None:
 		if self.ip and self.ip != "" and not self.connected: 
 			try:
-				#self.socket.settimeout(timeout)
+				self.socket.settimeout(timeout)
 				self.socket.connect((str(self.ip), 7331))
-				#self.socket.settimeout(None)
+				self.socket.settimeout(None)
 				self.connected = True
 				print("Successfully connected!")
 			except: raise Exception(f"Unable to connect to {self.ip}!")
@@ -176,7 +176,7 @@ class uGecko:
 			self.socket.send(req)
 		else: raise Exception("Invalid ram address!")
 
-	def kernelRead(self, address:int, skip:bool = False)->bytearray:
+	def kernelRead(self, address:int, skip:bool = False)->int:
 		if self.isValidMemoryArea(address, 4, skip, "read"):
 			self.socket.send(b'\x0C')
 			req = struct.pack(">I", int(address))
