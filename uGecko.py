@@ -138,10 +138,10 @@ class uGecko:
 				i += 4
 		else: raise Exception("No connection is in progress!")
 
-	def readString(self, address:int, length:int, skip:bool = False)->str:
+	def readString(self, address:int, length:int, decoding:str = "UTF-8", skip:bool = False)->str:
 		if self.connected:
 			string = self.read(address, length, skip)
-			return string.decode('UTF-8')
+			return string.decode(decoding)
 		else: raise Exception("No connection is in progress!")
 
 	def read(self, address:int, length:int, skip:bool = False)->bytearray:
@@ -166,7 +166,7 @@ class uGecko:
 		status = self.socket.recv(1)
 		if status == b'\xbd': ret = self.socket.recv(length)
 		elif status == b'\xb0': ret = b'\x00' * length
-		else: raise Exception("Something went terribly wrong")		
+		else: raise Exception("Something went terribly wrong")
 		return ret
 
 	def kernelWrite(self, address:int, value:int, skip:bool = False)->None:
@@ -243,8 +243,8 @@ class uGecko:
 	def getTitleID(self)->int:
 		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"))
 	
-	def getSystemInfo(self):
-		ptr = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
+	def getSystemInfo(self)->int:
+		ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
 		return ptr
 
 	def search(self, startAddress:int, value:int, length:int)->int:
@@ -252,7 +252,7 @@ class uGecko:
 			self.socket.send(b'\x72')
 			req = struct.pack(">III", startAddress, value, length)
 			self.socket.send(req)
-			return int.from_bytes(self.socket.recv(4), "big")	
+			return int.from_bytes(self.socket.recv(4), "big")
 		else: raise Exception("No connection is in progress!")
 
 	def advancedSearch(self, start:int, length:int, value:int, kernel:int, limit:int, aligned:int = 1)->list:
