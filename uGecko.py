@@ -149,31 +149,24 @@ class uGecko:
 			ret = b''
 			if length > 0x400:
 				for i in range(int(length / 0x400)):
-					self.socket.send(b'\x04')
-					req = struct.pack(">II", int(address), int(address + 0x400))
-					self.socket.send(req)
-					if status == b'\xbd': ret += self.socket.recv(length)
-					elif status == b'\xb0': ret += b'\x00' * length
-					else: raise Exception("Something went terribly wrong")
+					ret += self.__read(address, 0x400)
 					address += 0x400;length -= 0x400
 				if length != 0:
-					self.socket.send(b'\x04')
-					req = struct.pack(">II", int(address), int(address + length))
-					self.socket.send(req)
-					status = self.socket.recv(1)
-					if status == b'\xbd': ret += self.socket.recv(length)
-					elif status == b'\xb0': ret += b'\x00' * length
-					else: raise Exception("Something went terribly wrong")
+					ret += self.__read(address, length)
 			else:
-				self.socket.send(b'\x04')
-				req = struct.pack(">II", int(address), int(address + length))
-				self.socket.send(req)
-				status = self.socket.recv(1)
-				if status == b'\xbd': ret += self.socket.recv(length)
-				elif status == b'\xb0': ret += b'\x00' * length
-				else: raise Exception("Something went terribly wrong")
+				ret = self.__read(address, length)
 			return ret
 		else: raise Exception("Invalid ram address!")
+
+	def __read(self,address:int,length:int)->bytearray:
+		self.socket.send(b'\x04')
+		req = struct.pack(">II", int(address), int(address + length))
+		self.socket.send(req)
+		status = self.socket.recv(1)
+		if status == b'\xbd': ret = self.socket.recv(length)
+		elif status == b'\xb0': ret = b'\x00' * length
+		else: raise Exception("Something went terribly wrong")		
+		return ret
 
 	def kernelWrite(self, address:int, value:int, skip:bool = False)->None:
 		if self.isValidMemoryArea(address, 4, skip):
