@@ -24,10 +24,11 @@ class uGecko:
 	def connect(self, timeout:int = 5)->None:
 		if self.ip and self.ip != "" and not self.connected: 
 			try:
-				self.socket.settimeout(timeout)
+				#self.socket.settimeout(timeout)
 				self.socket.connect((str(self.ip), 7331))
-				self.socket.settimeout(None)
+				#self.socket.settimeout(None)
 				self.connected = True
+				print("Successfully connected!")
 			except: raise Exception(f"Unable to connect to {self.ip}!")
 		else: raise Exception("A connection is already in progress!")
 			
@@ -175,7 +176,7 @@ class uGecko:
 			self.socket.send(req)
 		else: raise Exception("Invalid ram address!")
 
-	def kernelRead(self, address:int, skip:bool = False)->int:
+	def kernelRead(self, address:int, skip:bool = False)->bytearray:
 		if self.isValidMemoryArea(address, 4, skip, "read"):
 			self.socket.send(b'\x0C')
 			req = struct.pack(">I", int(address))
@@ -241,6 +242,10 @@ class uGecko:
 
 	def getTitleID(self)->int:
 		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"))
+	
+	def getSystemInfo(self):
+		ptr = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
+		return ptr
 
 	def search(self, startAddress:int, value:int, length:int)->int:
 		if self.connected:
@@ -323,23 +328,19 @@ class uGecko:
 			self.socket.send(req)
 		else: raise Exception("No connection is in progress!")
 
-	def upload(self, startAddress: int, input: str, skip:bool = False) -> None:
-		total_chunk = len(input) // 8
-		rest_chunk  = len(input) % 8
-
-		i = 0
-		while i < total_chunk:
-			self.poke32(startAddress + i * 4, int(input[i * 8:i * 8 + 8], 16), skip)
-			i += 1
-
-		if rest_chunk != 0:
-			rest = re.findall(".", input[i * 8:i * 8 + 8])
-			while len(rest) < 8:
-				rest.append('0')
-			self.poke32(startAddress + i * 4, int("".join(rest), 16), skip)
+	def upload(self, startAddress: int, data: bytes) -> None:
+		if self.connected:
+			self.socket.send(b'\x41')
+			req = struct.pack(">II",startAddress,startAddress+len(data))
+			self.socket.send(req) # first let the sever know the length
+			self.socket.send(data)# then send the data
+		else: raise Exception("No connection is in progress!")
 
 	def dump(self, startAddress: int, endAddress: int, skip:bool = False) -> bytearray:
 		return self.read(startAddress, endAddress - startAddress, skip)
 
 	def allocateSystemMemory(self, size: int) -> int:
 		return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, 4, recv = 4)
+
+	def freeSystemMemory(self, address):
+		return self.function("coreinit.rpl", "OSFreeToSystem", address)
