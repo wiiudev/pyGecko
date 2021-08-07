@@ -16,8 +16,8 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |kernelWrite()| Writes a value to memory with Kernel Privileges | `gecko.kernelWrite(0x10000000, 0x00000000)`| None
 |upload()| lets u upload any amount of bytes into the specified memory address | `gecko.upload(startAddress, data)`| None
 ||||
-|read()| Allows to know what is the value of an address | `gecko.read(address, length)` | Value
-|kernelRead()| Reads a value to memory with Kernel Privileges | `gecko.kernelRead(address)`| Value
+|read()| Allows to know what is the value of an address | `gecko.read(address, length)` | Bytearray
+|kernelRead()| Reads a value to memory with Kernel Privileges | `gecko.kernelRead(address)`| Int
 ||||
 |writeString()| Allows you to write text in the ram | `gecko.writeString(address, "Hello World!")` | None
 |readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | String(UTF-8)
