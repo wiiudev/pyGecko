@@ -9,6 +9,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |disconnect()|Allows you to disconnect to the WiiU.| `gecko.disconnect()`| None
 |isConnected()|Allows to know if a connection is in progress or not.| `gecko.isConnected()`| Boolean
 # *Write operators*
+
 |:----:	|:-----------:	|:-------:	| :------:|
 |poke8() |Allows to change the value in the ram|`gecko.poke8(address, 0x12)`| None
 |poke16()|Allows to change the value in the ram|`gecko.poke16(address, 0x1234)`| None
