@@ -46,3 +46,4 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |clearAssembly()| | `gecko.clearAssembly()`| None
 |excecuteAssembly()| executes parsed assembly | `gecko.excecuteAssembly(assembly)`| None
 |persistAssembly()| | `gecko.persistAssembly(assembly)`| None
+|upload()| lets u upload any amount of bytes into the specified memory address | `gecko.upload(startAddress,data)`| None
