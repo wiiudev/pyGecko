@@ -4,7 +4,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 | Name 	| Description 	| Example 	| Return |
 |:----:	|:-----------:	|:-------:	| :------:|
 |uGecko| Used to initialize uGecko | `gecko = uGecko("192.168.1.102")` | None
-|Base operators|
+|:Base operators:|
 |connect()|Allows you to connect to the WiiU.| `gecko.connect()`| None
 |disconnect()|Allows you to disconnect to the WiiU.| `gecko.disconnect()`| None
 |isConnected()|Allows to know if a connection is in progress or not.| `gecko.isConnected()`| Boolean
