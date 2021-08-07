@@ -332,7 +332,7 @@ class uGecko:
 		if self.connected:
 			self.socket.send(b'\x41')
 			req = struct.pack(">II",startAddress,startAddress+len(data))
-			self.socket.send(req) # first let the sever know the length
+			self.socket.send(req) # first let the server know the length
 			self.socket.send(data)# then send the data
 		else: raise Exception("No connection is in progress!")
 
