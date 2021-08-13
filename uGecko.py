@@ -31,7 +31,6 @@ class uGecko:
 				print("Successfully connected!")
 			except: raise Exception(f"Unable to connect to {self.ip}!")
 		else: raise Exception("A connection is already in progress!")
-			
 
 	def disconnect(self)->None:
 		if self.connected:
@@ -161,9 +160,10 @@ class uGecko:
 
 	def __read(self,address:int,length:int)->bytearray:
 		self.socket.send(b'\x04')
-		req = struct.pack(">II", int(address), int(address + length))
+		req = struct.pack(">II", address, address + length)
 		self.socket.send(req)
 		status = self.socket.recv(1)
+		print(f"Status : {status}")
 		if status == b'\xbd': ret = self.socket.recv(length)
 		elif status == b'\xb0': ret = b'\x00' * length
 		else: raise Exception("Something went terribly wrong")
@@ -243,9 +243,19 @@ class uGecko:
 	def getTitleID(self)->int:
 		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"))
 	
-	def getSystemInfo(self)->int:
-		ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
-		return ptr
+	def getSystemInfo(self)->dict:
+		if self.connected:
+			sysInfo = dict()
+			ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
+			data = self.read(ptr,0x1c)
+			sysInfo["busClockSpeed"] = int.from_bytes(data[0:4],"big")
+			sysInfo["coreClockSpeed"] = int.from_bytes(data[4:8],"big")
+			sysInfo["timeBase"] = int.from_bytes(data[8:0xc],"big")
+			sysInfo["L2Size"] = [int.from_bytes(data[0xc:0x10],"big"),int.from_bytes(data[0x10:0x14],"big"),int.from_bytes(data[0x14:0x18],"big")]
+			sysInfo["cpuRatio"] = int.from_bytes(data[0x18:0x1c],"big")
+			return sysInfo
+
+		raise Exception("No connection is in progress!")
 
 	def search(self, startAddress:int, value:int, length:int)->int:
 		if self.connected:
@@ -294,8 +304,7 @@ class uGecko:
 				req = struct.pack(">I8I", address, *arguments)
 				self.socket.send(b'\x70')
 				self.socket.send(req)
-				if recv == 4: return struct.unpack('>I', self.socket.recv(4))[0]
-				return struct.unpack('>Q', self.socket.recv(8))[0]
+				return struct.unpack('>Q', self.socket.recv(8))[0] >> 32*(recv==4)
 			else:
 				raise Exception("Too many arguments!")
 		else: raise Exception("No connection is in progress!")
@@ -331,16 +340,19 @@ class uGecko:
 	def upload(self, startAddress: int, data: bytes) -> None:
 		if self.connected:
 			self.socket.send(b'\x41')
-			req = struct.pack(">II",startAddress,startAddress+len(data))
+			req = struct.pack(">II",startAddress, startAddress+len(data))
 			self.socket.send(req) # first let the server know the length
 			self.socket.send(data)# then send the data
 		else: raise Exception("No connection is in progress!")
 
 	def dump(self, startAddress: int, endAddress: int, skip:bool = False) -> bytearray:
-		return self.read(startAddress, endAddress - startAddress, skip)
+		if self.connected: return self.read(startAddress, endAddress - startAddress, skip)
+		raise Exception("No connection is in progress!")
 
-	def allocateSystemMemory(self, size: int) -> int:
-		return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, 4, recv = 4)
+	def allocateSystemMemory(self, size: int, alignment:int = 1) -> int:
+		if (self.connected): return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, alignment, recv = 4)
+		raise Exception("No connection is in progress!")
 
-	def freeSystemMemory(self, address):
-		return self.function("coreinit.rpl", "OSFreeToSystem", address)
+	def freeSystemMemory(self, address)->None:
+		if (self.connected): return self.function("coreinit.rpl", "OSFreeToSystem", address)
+		raise Exception("No connection is in progress!")
