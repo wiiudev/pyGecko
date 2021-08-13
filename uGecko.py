@@ -163,7 +163,6 @@ class uGecko:
 		req = struct.pack(">II", address, address + length)
 		self.socket.send(req)
 		status = self.socket.recv(1)
-		print(f"Status : {status}")
 		if status == b'\xbd': ret = self.socket.recv(length)
 		elif status == b'\xb0': ret = b'\x00' * length
 		else: raise Exception("Something went terribly wrong")
@@ -254,7 +253,6 @@ class uGecko:
 			sysInfo["L2Size"] = [int.from_bytes(data[0xc:0x10],"big"),int.from_bytes(data[0x10:0x14],"big"),int.from_bytes(data[0x14:0x18],"big")]
 			sysInfo["cpuRatio"] = int.from_bytes(data[0x18:0x1c],"big")
 			return sysInfo
-
 		raise Exception("No connection is in progress!")
 
 	def search(self, startAddress:int, value:int, length:int)->int:
