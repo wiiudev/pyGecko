@@ -246,12 +246,12 @@ class uGecko:
 		if self.connected:
 			sysInfo = dict()
 			ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
-			data = self.read(ptr,0x1c)
-			sysInfo["busClockSpeed"] = int.from_bytes(data[0:4],"big")
-			sysInfo["coreClockSpeed"] = int.from_bytes(data[4:8],"big")
-			sysInfo["timeBase"] = int.from_bytes(data[8:0xc],"big")
-			sysInfo["L2Size"] = [int.from_bytes(data[0xc:0x10],"big"),int.from_bytes(data[0x10:0x14],"big"),int.from_bytes(data[0x14:0x18],"big")]
-			sysInfo["cpuRatio"] = int.from_bytes(data[0x18:0x1c],"big")
+			data = struct.unpack(">IIIIIII", self.read(ptr,0x1c))
+			sysInfo["busClockSpeed"] = data[0]
+			sysInfo["coreClockSpeed"] = data[1]
+			sysInfo["timeBase"] = data[2]
+			sysInfo["L2Size"] = [data[3],data[4],data[5]]
+			sysInfo["cpuRatio"] = data[6]
 			return sysInfo
 		raise Exception("No connection is in progress!")
 
