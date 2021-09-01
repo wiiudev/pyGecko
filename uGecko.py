@@ -292,7 +292,7 @@ class uGecko:
 			return self.socket.recv(4)
 		else: raise Exception("No connection is in progress!")
 
-	def call(self, address:int, *args, recv:int = 8):
+	def call(self, address:int, *args, recv:int = 4):
 		if self.connected:
 			arguments = list(args)
 			if len(arguments) <= 8:
@@ -366,3 +366,16 @@ class uGecko:
 	def freeSystemMemory(self, address)->None:
 		if (self.connected): return self.function("coreinit.rpl", "OSFreeToSystem", address)
 		raise Exception("No connection is in progress!")
+		
+	def malloc(self, size:int, alignment:int = 4)->int:
+		if (self.connected):
+			symbol = self.getSymbol('coreinit.rpl', 'MEMAllocFromDefaultHeapEx', 1)
+			address = struct.unpack(">I", self.read(symbol, 4))[0]
+			return self.call(address, size, alignment, recv = 4)
+		return -1
+
+	def free(self, address:int)->None:
+		if (self.connected):
+			symbol = self.getSymbol("coreinit.rpl", "MEMFreeToDefaultHeap", 1)
+			addr = struct.unpack(">I", self.read(symbol, 4))[0]
+			self.call(addr, address)
