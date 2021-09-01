@@ -23,6 +23,9 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | String(UTF-8)
 |clearString()| Allows you to delete text written in the ram | `gecko.clearString(startAddress, endAddress)` | None
 ||||
+| malloc | Allocates given size | `gecko.malloc(0x100)` | Int
+| free | frees given size | `gecko.free(address)` | None
+||||
 |isConsolePaused()|Allows to know if the console is paused or not|`gecko.isConsolePaused()`| Boolean
 |pauseConsole()| Allows you to pause the console | `gecko.pauseConsole()` | None
 |resumeConsole()| Allows you to resume the console  | `gecko.resumeConsole()`| None
