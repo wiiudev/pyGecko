@@ -335,19 +335,31 @@ class uGecko:
 			self.socket.send(req)
 		else: raise Exception("No connection is in progress!")
 
+	def __upload(self, startAddress: int, data: bytes) -> None:
+		self.socket.send(b'\x41')
+		req = struct.pack(">II",startAddress, startAddress+len(data))
+		self.socket.send(req) # first let the server know the length
+		self.socket.send(data)# then send the data
+
 	def upload(self, startAddress: int, data: bytes) -> None:
 		if self.connected:
-			self.socket.send(b'\x41')
-			req = struct.pack(">II",startAddress, startAddress+len(data))
-			self.socket.send(req) # first let the server know the length
-			self.socket.send(data)# then send the data
+			length = len(data)
+			maxLength = self.getDataBufferSize()
+			if length > maxLength:
+				pos = 0
+				print(f"length over {hex(maxLength)}\nuploading in blocks!")
+				for i in range(int(length/maxLength)):
+					self.__upload(startAddress, data[pos:pos+maxLength])
+					pos += maxLength; length-=maxLength; startAddress+=maxLength
+				if length != 0: self.__upload(startAddress, data[pos:pos+length])
+			else: self.__upload(startAddress, data)
 		else: raise Exception("No connection is in progress!")
 
 	def dump(self, startAddress: int, endAddress: int, skip:bool = False) -> bytearray:
 		if self.connected: return self.read(startAddress, endAddress - startAddress, skip)
 		raise Exception("No connection is in progress!")
 
-	def allocateSystemMemory(self, size: int, alignment:int = 1) -> int:
+	def allocateSystemMemory(self, size: int, alignment:int = 4) -> int:
 		if (self.connected): return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, alignment, recv = 4)
 		raise Exception("No connection is in progress!")
 
