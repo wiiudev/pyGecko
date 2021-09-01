@@ -368,7 +368,6 @@ class uGecko:
 		
 	def malloc(self, size:int, alignment:int = 4)->int:
 		if self.connected:
-			print("malloc call")
 			symbol = self.getSymbol('coreinit.rpl', 'MEMAllocFromDefaultHeapEx', 1)
 			address = struct.unpack(">I", self.read(symbol, 4))[0]
 			return self.call(address, size, alignment)
