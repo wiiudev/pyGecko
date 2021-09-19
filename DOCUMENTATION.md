@@ -23,6 +23,9 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |readString() | Allows to read a string in the ram | `gecko.readString(address, length)` | String(UTF-8)
 |clearString()| Allows you to delete text written in the ram | `gecko.clearString(startAddress, endAddress)` | None
 ||||
+| malloc | Allocates given size | `gecko.malloc(0x100)` | Int
+| free | frees given address | `gecko.free(address)` | None
+||||
 |isConsolePaused()|Allows to know if the console is paused or not|`gecko.isConsolePaused()`| Boolean
 |pauseConsole()| Allows you to pause the console | `gecko.pauseConsole()` | None
 |resumeConsole()| Allows you to resume the console  | `gecko.resumeConsole()`| None
@@ -32,7 +35,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |getOsVersion()| Allows to get the version of the console | `gecko.getOsVersion()`| Int
 |getVersionHash()| Allows to get the hash of the version | `gecko.getVersionHash()`| Int
 |getAccountID()| Allows you to retrieve the identifier of the account currently connected to the console. | `gecko.getAccountID()`| String
-|getCodeHandlerAddress()| Allows you to get the address of the core handler. | `gecko.getCodeHandlerAddress()`| Int
+|getCodeHandlerAddress()| Allows you to get the address of the code handler. | `gecko.getCodeHandlerAddress()`| Int
 |getDataBufferSize()| return the Max size of the DataBuffer | `gecko.getDataBufferSize()`| Int
 |getTitleID()| returns the current app titleID | `gecko.getTitleID()`| Int
 |getEntryPointAddress()| returns the Entry point of the currently running app | `gecko.getEntryPointAddress()`| Int

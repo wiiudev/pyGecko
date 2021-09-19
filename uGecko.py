@@ -40,7 +40,7 @@ class uGecko:
 	def isConnected(self)->bool:
 		return self.connected
 
-	def validRange(self, address, length)->bool:
+	def validRange(self, address:int, length:int)->bool:
 		if   0x01000000 <= address and address + length <= 0x01800000: return True
 		elif 0x0E000000 <= address and address + length <= 0x10000000: return True #Depends on game
 		elif 0x10000000 <= address and address + length <= 0x50000000: return True #Doesn't quite go to 5
@@ -86,9 +86,9 @@ class uGecko:
 			if access.lower() == "write": return True
 		else: return False
 
-	def isValidMemoryArea(self, address:int, length:int, skip_verification:bool, type:str = "write")->bool:
+	def isValidMemoryArea(self, address:int, length:int, skip_verification:bool, mode:str = "write")->bool:
 		if self.connected:
-			if not skip_verification: return self.validRange(address, length) and self.validAccess(address, length, type)
+			if not skip_verification: return self.validRange(address, length) and self.validAccess(address, length, mode)
 			return True
 		else: raise Exception("No connection is in progress!")
 
@@ -239,12 +239,12 @@ class uGecko:
 		else: raise Exception("No connection is in progress!")
 
 	def getTitleID(self)->int:
-		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"))
+		return self.call(self.getSymbol("coreinit.rpl", "OSGetTitleID"),recv=8)
 	
 	def getSystemInfo(self)->dict:
 		if self.connected:
 			sysInfo = dict()
-			ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"),recv=4)
+			ptr:int = self.call(self.getSymbol("coreinit.rpl", "OSGetSystemInfo"))
 			data = struct.unpack(">IIIIIII", self.read(ptr,0x1c))
 			sysInfo["busClockSpeed"] = data[0]
 			sysInfo["coreClockSpeed"] = data[1]
@@ -288,16 +288,16 @@ class uGecko:
 			self.socket.send(size)
 			self.socket.send(req)
 			self.socket.send(data)
-			return self.socket.recv(4)
+			return struct.unpack(">I", self.socket.recv(4))[0]
 		else: raise Exception("No connection is in progress!")
 
-	def call(self, address:int, *args, recv:int = 8):
+	def call(self, address:int, *args, recv:int = 4):
 		if self.connected:
 			arguments = list(args)
 			if len(arguments) <= 8:
 				while len(arguments) != 8:
 					arguments.append(0)
-				address = struct.unpack(">I", address)[0]
+				# address = struct.unpack(">I", address)[0]
 				req = struct.pack(">I8I", address, *arguments)
 				self.socket.send(b'\x70')
 				self.socket.send(req)
@@ -334,22 +334,47 @@ class uGecko:
 			self.socket.send(req)
 		else: raise Exception("No connection is in progress!")
 
+	def __upload(self, startAddress: int, data: bytes) -> None:
+		self.socket.send(b'\x41')
+		req = struct.pack(">II",startAddress, startAddress+len(data))
+		self.socket.send(req) # first let the server know the length
+		self.socket.send(data)# then send the data
+
 	def upload(self, startAddress: int, data: bytes) -> None:
 		if self.connected:
-			self.socket.send(b'\x41')
-			req = struct.pack(">II",startAddress, startAddress+len(data))
-			self.socket.send(req) # first let the server know the length
-			self.socket.send(data)# then send the data
+			length = len(data)
+			maxLength = self.getDataBufferSize()
+			if length > maxLength:
+				pos = 0
+				print(f"length over {hex(maxLength)}\nuploading in blocks!")
+				for i in range(int(length/maxLength)):
+					self.__upload(startAddress, data[pos:pos+maxLength])
+					pos += maxLength; length-=maxLength; startAddress+=maxLength
+				if length != 0: self.__upload(startAddress, data[pos:pos+length])
+			else: self.__upload(startAddress, data)
 		else: raise Exception("No connection is in progress!")
 
 	def dump(self, startAddress: int, endAddress: int, skip:bool = False) -> bytearray:
 		if self.connected: return self.read(startAddress, endAddress - startAddress, skip)
 		raise Exception("No connection is in progress!")
 
-	def allocateSystemMemory(self, size: int, alignment:int = 1) -> int:
-		if (self.connected): return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, alignment, recv = 4)
+	def allocateSystemMemory(self, size:int, alignment:int = 4) -> int:
+		if self.connected: return self.call(self.getSymbol('coreinit.rpl', 'OSAllocFromSystem'), size, alignment, recv = 4)
 		raise Exception("No connection is in progress!")
 
-	def freeSystemMemory(self, address)->None:
-		if (self.connected): return self.function("coreinit.rpl", "OSFreeToSystem", address)
+	def freeSystemMemory(self, address:int)->None:
+		if self.connected: self.function("coreinit.rpl", "OSFreeToSystem", address)
 		raise Exception("No connection is in progress!")
+		
+	def malloc(self, size:int, alignment:int = 4)->int:
+		if self.connected:
+			symbol = self.getSymbol('coreinit.rpl', 'MEMAllocFromDefaultHeapEx', 1)
+			address = struct.unpack(">I", self.read(symbol, 4))[0]
+			return self.call(address, size, alignment)
+		return -1
+
+	def free(self, address:int)->None:
+		if self.connected:
+			symbol = self.getSymbol("coreinit.rpl", "MEMFreeToDefaultHeap", 1)
+			addr = struct.unpack(">I", self.read(symbol, 4))[0]
+			self.call(addr, address)
