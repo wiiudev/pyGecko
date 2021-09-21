@@ -340,13 +340,13 @@ class uGecko:
 		self.socket.send(req) # first let the server know the length
 		self.socket.send(data)# then send the data
 
-	def upload(self, startAddress: int, data: bytes) -> None:
+	def upload(self, startAddress: int, data: bytes, debug_print:bool = False) -> None:
 		if self.connected:
 			length = len(data)
 			maxLength = self.getDataBufferSize()
 			if length > maxLength:
 				pos = 0
-				print(f"length over {hex(maxLength)}\nuploading in blocks!")
+				if debug_print: print(f"length over {hex(maxLength)}\nuploading in blocks!")
 				for i in range(int(length/maxLength)):
 					self.__upload(startAddress, data[pos:pos+maxLength])
 					pos += maxLength; length-=maxLength; startAddress+=maxLength
