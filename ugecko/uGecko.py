@@ -255,7 +255,7 @@ class uGecko:
 
         return int.from_bytes(self.__socket.recv(4), byteorder="big")
 
-    def advancedSearch(self, start_address: int, length: int, value: int, kernel: int, limit: int, aligned: int = 1, skip_verification: bool = False) -> list[int]:
+    def advancedSearch(self, start_address: int, length: int, value: int, kernel: int, limit: int, aligned: int = 1, skip_verification: bool = False) -> list:
         if not self.__connected: raise ConnectionIsNotInProgressException("No connection is in progress!")
         if not Memory.isValidMemoryArea(start_address, length, skip_verification, "read"): raise InvalidMemoryAreaException("Invalid memory area!")
 
