@@ -1,7 +1,8 @@
 # uGecko
 Python library for use with TCPGecko. Requires kernel exploit to use.
 
-All the library is contained in the file named uGecko.py (*WARNING: Tested on Python 3.8 to 3.9*). You can find examples in the folder `examples`.
+(*WARNING: Tested on Python 3.8 to 3.9*). <br />
+You can find examples in the folder `examples`.
 
 # Credits
 
