@@ -1,8 +1,10 @@
 from setuptools import setup
 
 requirements = []
+"""
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
+"""
 
 readme = ""
 with open('README.md', 'r') as f:
