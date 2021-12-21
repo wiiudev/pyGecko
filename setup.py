@@ -20,7 +20,7 @@ setup(
     url = "https://github.com/vincent-coding/uGecko",
     project_urls = {
         "Source Code": "https://github.com/vincent-coding/uGecko",
-        "Documentation": "https://github.com/vincent-coding/uGecko/docs",
+        "Documentation": "https://github.com/vincent-coding/uGecko/tree/master/docs",
         "Issue Tracker": "https://github.com/vincent-coding/uGecko/issues"
     },
     version = "1.3.0",
