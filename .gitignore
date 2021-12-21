@@ -2,3 +2,5 @@
 testLIb.py
 __pycache__
 *@dev.py
+.venv
+.venv3.8

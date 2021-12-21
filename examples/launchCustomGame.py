@@ -1,16 +1,6 @@
-				#####################
-				#    Ignore this    #					
-########################################################
-import os, sys
-sys.dont_write_bytecode = True
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-########################################################
+from ugecko import uGecko
 
-from uGecko import uGecko
-
-gecko = uGecko("192.168.1.102")
+gecko = uGecko("192.168.1.57")
 gecko.connect()
 
 titleID = 0x0005000010176A00 # Splatoon EUR
