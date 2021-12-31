@@ -325,13 +325,13 @@ class uGecko:
         self.call(addr, address)
 
     def __upload(self, startAddress: int, data: bytes) -> None:
-        self.__socket.send(b'\x41')
+        self.__socket.send(Commands.UPLOAD_MEMORY.value)
         req = struct.pack(">II",startAddress, startAddress+len(data))
         self.__socket.send(req)  # first let the server know the length
         self.__socket.send(data) # then send the data
 
     def upload(self, startAddress: int, data: bytes, debug_print:bool = False) -> None:
-        if self.connected:
+        if self.__connected:
             length = len(data)
             maxLength = self.getDataBufferSize()
             if length > maxLength:
@@ -342,4 +342,4 @@ class uGecko:
                     pos += maxLength; length-=maxLength; startAddress+=maxLength
             if length != 0: self.__upload(startAddress, data[pos:pos+length])
             else: self.__upload(startAddress, data)
-        else: raise Exception("No connection is in progress!")
+        else: raise ConnectionIsNotInProgressException("No connection is in progress!")
