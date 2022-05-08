@@ -25,7 +25,7 @@ setup(
         "Documentation": "https://github.com/vincent-coding/uGecko/tree/master/docs",
         "Issue Tracker": "https://github.com/vincent-coding/uGecko/issues"
     },
-    version = "1.3.2",
+    version = "1.3.3",
     packages = packages,
     license = "MIT",
     description = "Python library for use with TCPGecko. Requires kernel exploit to use.",
