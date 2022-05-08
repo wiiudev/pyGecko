@@ -12,7 +12,7 @@ This file is intended to explain and show how to use the functions of ___uGecko_
 |poke8() |Allows to change the value in the ram|`gecko.poke8(address, 0x12)`| None
 |poke16()|Allows to change the value in the ram|`gecko.poke16(address, 0x1234)`| None
 |poke32()|Allows to change the value in the ram|`gecko.poke32(address, 0x12345678)`| None
-|serialPoke()|Allows to write a specific value on several addresses of the ram.|`gecko.poke32(addressTable, 0x3F800000)`| None
+|serialPoke()|Allows to write a specific value on several addresses of the ram.|`gecko.serialPoke(addressTable, 0x3F800000)`| None
 |kernelWrite()| Writes a value to memory with Kernel Privileges | `gecko.kernelWrite(0x10000000, 0x00000000)`| None
 |upload()| lets u upload any amount of bytes into the specified memory address | `gecko.upload(startAddress, data)`| None
 ||||
