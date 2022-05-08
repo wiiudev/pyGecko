@@ -231,7 +231,7 @@ class uGecko:
 
         return struct.unpack(">I", self.__socket.recv(4))[0]
 
-    def call(self, address: int, *args, recv: int = 4):
+    def call(self, address, *args, recv: int = 4):
         if not self.__connected: raise ConnectionIsNotInProgressException("No connection is in progress!")
         
         arguments = list(args)
@@ -239,6 +239,7 @@ class uGecko:
             while len(arguments) != 8:
                 arguments.append(0)
 
+            address = struct.unpack(">I", address)[0]
             req = struct.pack(">I8I", address, *arguments)
             self.__socket.send(Commands.REMOTE_PROCEDURE_CALL.value)
             self.__socket.send(req)
