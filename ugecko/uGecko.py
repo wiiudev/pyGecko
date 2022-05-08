@@ -69,7 +69,7 @@ class uGecko:
         self.__socket.send(Commands.POKE_32.value)
         self.__socket.send(struct.pack(">II", address, value))
 
-    def seriaPoke(self, address_list: Union[list, tuple], value: int, skip_verification: bool = False) -> None:
+    def serialPoke(self, address_list: Union[list, tuple], value: int, skip_verification: bool = False) -> None:
         for address in address_list:
             self.poke32(address, value, skip_verification)
 
